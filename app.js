@@ -20,6 +20,7 @@ const els = {
   yearSelect: document.querySelector("#yearSelect"),
   monthSelect: document.querySelector("#monthSelect"),
   pageTitle: document.querySelector("#pageTitle"),
+  topbarToolbar: document.querySelector("#topbarToolbar"),
   expectedRent: document.querySelector("#expectedRent"),
   paidCount: document.querySelector("#paidCount"),
   openCount: document.querySelector("#openCount"),
@@ -1657,6 +1658,7 @@ function switchView(view) {
   document.querySelectorAll(".nav-item").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
   document.querySelectorAll(".view").forEach((section) => section.classList.toggle("active-view", section.id === `${view}View`));
   els.pageTitle.textContent = { dashboard: "總覽", payments: "收款維護", properties: "物件資料", settlement: "退租結算", tenantBill: "租客帳單" }[view];
+  els.topbarToolbar.classList.toggle("is-hidden", view === "tenantBill");
 }
 
 function openPaymentDialog(rowIndex, month) {
