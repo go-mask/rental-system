@@ -1118,6 +1118,7 @@ function calculateUtilities() {
 }
 
 function render() {
+  updateTopbarToolbar();
   renderSelectors();
   renderBillControls();
   renderAuthState();
@@ -1128,6 +1129,10 @@ function render() {
   renderSettlement();
   renderBillTenantRows();
   renderTenantBill();
+}
+
+function updateTopbarToolbar() {
+  els.topbarToolbar.classList.toggle("is-hidden", activeView !== "payments");
 }
 
 function renderAuthState() {
@@ -1658,7 +1663,7 @@ function switchView(view) {
   document.querySelectorAll(".nav-item").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
   document.querySelectorAll(".view").forEach((section) => section.classList.toggle("active-view", section.id === `${view}View`));
   els.pageTitle.textContent = { dashboard: "總覽", payments: "收款維護", properties: "物件資料", settlement: "退租結算", tenantBill: "租客帳單" }[view];
-  els.topbarToolbar.classList.toggle("is-hidden", view === "tenantBill");
+  updateTopbarToolbar();
 }
 
 function openPaymentDialog(rowIndex, month) {
@@ -1735,19 +1740,6 @@ function showDialog(onSave) {
   };
 }
 
-function exportCsv() {
-  const headers = ["年度", "地址", "租金", "租客姓名", "繳費週期", "匯款帳戶後五碼", ...MONTHS, "備註"];
-  const lines = [headers, ...getRows().map((row) => [currentYear, row.address, row.rent, row.tenant, row.cycle, row.bankAccount, ...MONTHS.map((month) => row.payments[month] || ""), row.notes])];
-  const csv = lines.map((line) => line.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\n");
-  const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `房租收入_${currentYear}.csv`;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
 }
@@ -1793,7 +1785,6 @@ els.monthSelect.addEventListener("change", () => {
 });
 
 els.paymentSearch.addEventListener("input", renderPayments);
-document.querySelector("#exportBtn").addEventListener("click", exportCsv);
 document.querySelector("#loginBtn").addEventListener("click", loginSupabase);
 document.querySelector("#loginScreenBtn").addEventListener("click", loginSupabase);
 els.loginPassword.addEventListener("keydown", (event) => {
