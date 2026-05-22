@@ -30,6 +30,7 @@ C:\gomask_openai\rental-system\index.html
 - 退租結算模組：租金日割、押金抵扣、預繳租金退還、修繕/其他扣款
 - 水電結算模組：官方兩月帳單總額、分錶用量比例、多租客/空屋分攤
 - 租客帳單報表：依分錶比例產生可列印的租金與水電明細通知
+- 多人協作：擁有者可邀請可編輯或只讀成員共同維護同一份資料
 - 歷史水電資料：已匯入既有 Excel 帳期並統一轉為西元年，可套用官方電費/水費總額與分錶讀數
 - 歷史帳期租客姓名以該月資料列最後一位姓名為準，避免把退租/換租備註合併成多人
 
@@ -68,6 +69,7 @@ C:\gomask_openai\rental-system\index.html
 
 - GitHub Pages：依 `DEPLOY_GITHUB_PAGES.md` 部署
 - Supabase：先依 `SUPABASE_SETUP.md` 執行 `supabase-schema.sql`
+- 多人協作：既有專案需再執行 `supabase-migration-002-organizations.sql`
 - 登入：先做單一房東管理帳號
 - 資料同步：優先改造物件資料與每月收款紀錄
 - 登入權限：管理者、只讀檢視者

@@ -34,9 +34,11 @@
 
 ```text
 supabase-migration-001-rent-year.sql
+supabase-migration-002-organizations.sql
 ```
 
 這會讓 `properties` 增加 `rent_year` 欄位，讓同一物件在不同年度可保留不同租客、租金與備註。
+第二份 migration 會建立多人協作的 organization、member、invitation 權限模型，並把既有資料歸入你的預設組織。
 
 ## 建議 Authentication 設定
 
@@ -79,10 +81,28 @@ supabase-migration-001-rent-year.sql
 - 儲存目前租客帳單到 `tenant_bills` 與 `tenant_bill_items`
 - 從已存帳單下拉載入過去帳單快照
 - 刪除已存帳單時一併刪除帳單明細
+- 多人協作：擁有者可用 Email 邀請 editor/viewer，受邀者登入後自動加入同一份資料
 
 尚未同步：
 
 - 退租結算儲存紀錄
+
+## 多人協作
+
+角色：
+
+- `owner`: 擁有者，可邀請成員、讀寫與刪除資料
+- `editor`: 可讀寫資料，但不能邀請成員
+- `viewer`: 只能讀取與列印，不能修改資料
+
+邀請流程：
+
+1. 擁有者登入系統。
+2. 左側「多人協作」輸入協作者 Email。
+3. 選擇 `可編輯` 或 `只能查看`。
+4. 按「邀請協作者」。
+5. 協作者需先在 Supabase Authentication 建立同 Email 帳號。
+6. 協作者登入系統後，會自動接受邀請並看到同一份資料。
 
 ## 資料安全原則
 

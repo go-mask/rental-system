@@ -264,7 +264,9 @@ button {
   margin-top: 12px;
 }
 
-.auth-card input {
+.auth-card input,
+.team-card input,
+.team-card select {
   min-height: 36px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 8px;
@@ -273,11 +275,13 @@ button {
   padding: 8px 10px;
 }
 
-.auth-card input::placeholder {
+.auth-card input::placeholder,
+.team-card input::placeholder {
   color: #adc0cf;
 }
 
-.auth-card p {
+.auth-card p,
+.team-card p {
   margin: 0;
   color: #adc0cf;
   font-size: 12px;

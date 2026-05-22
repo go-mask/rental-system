@@ -40,6 +40,10 @@ const els = {
   authEmail: document.querySelector("#authEmail"),
   authPassword: document.querySelector("#authPassword"),
   authMessage: document.querySelector("#authMessage"),
+  organizationState: document.querySelector("#organizationState"),
+  inviteEmail: document.querySelector("#inviteEmail"),
+  inviteRole: document.querySelector("#inviteRole"),
+  teamMessage: document.querySelector("#teamMessage"),
   appShell: document.querySelector("#appShell"),
   sidebarToggle: document.querySelector("#sidebarToggle"),
   settlementAddress: document.querySelector("#settlementAddress"),
@@ -108,6 +112,8 @@ const supabaseClient = window.supabase && supabaseConfig.url && supabaseConfig.a
   ? window.supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey)
   : null;
 let supabaseSession = null;
+let currentOrganization = null;
+let currentOrgRole = "";
 
 let utilityTenants = [
   { name: "退租租客", start: "", end: "", charge: "tenant", electricPrevious: 0, electricCurrent: 0, waterPrevious: 0, waterCurrent: 0 },
@@ -350,6 +356,7 @@ function applyUtilityHistory() {
 
 function utilityPeriodPayload(item) {
   return {
+    organization_id: currentOrganization?.id,
     address: item.address || "",
     period_year: Number(item.periodYear || 0),
     period_month: Number(item.periodMonth || 1),
@@ -362,6 +369,7 @@ function utilityPeriodPayload(item) {
 
 function utilityReadingPayload(tenant, periodId) {
   return {
+    organization_id: currentOrganization?.id,
     utility_period_id: periodId,
     unit_label: tenant.unit || "",
     tenant_name: tenant.tenant || "",
@@ -422,9 +430,9 @@ async function importUtilityHistoryToCloud() {
   if (!window.confirm("這會清除你帳號目前雲端的水電帳期與分錶讀數，再匯入本機歷史水電資料。確定繼續？")) return;
 
   setCloudMessage("正在匯入歷史水電資料...");
-  const { error: deleteReadingsError } = await supabaseClient.from("utility_readings").delete().eq("owner_id", supabaseSession.user.id);
+  const { error: deleteReadingsError } = await supabaseClient.from("utility_readings").delete().eq("organization_id", currentOrganization.id);
   if (handleCloudError(deleteReadingsError, "清除雲端分錶讀數")) return;
-  const { error: deletePeriodsError } = await supabaseClient.from("utility_periods").delete().eq("owner_id", supabaseSession.user.id);
+  const { error: deletePeriodsError } = await supabaseClient.from("utility_periods").delete().eq("organization_id", currentOrganization.id);
   if (handleCloudError(deletePeriodsError, "清除雲端水電帳期")) return;
 
   const periodPayloads = history.map(utilityPeriodPayload);
@@ -453,6 +461,7 @@ async function loadUtilityHistoryFromCloud({ quiet = false } = {}) {
   const { data, error } = await supabaseClient
     .from("utility_periods")
     .select("*, utility_readings(*)")
+    .eq("organization_id", currentOrganization.id)
     .order("period_year", { ascending: true })
     .order("period_month", { ascending: true });
   if (handleCloudError(error, "載入歷史水電")) return;
@@ -470,6 +479,7 @@ async function loadUtilityHistoryFromCloud({ quiet = false } = {}) {
 function tenantBillPayload() {
   const profile = currentRemittanceProfile();
   return {
+    organization_id: currentOrganization?.id,
     bill_type: els.billType.value,
     address: billAddressOverride || selectedBillProperty()?.address || "",
     bill_year: Number(els.billYear.value || currentYear),
@@ -483,6 +493,7 @@ function tenantBillPayload() {
 function tenantBillItemPayload(row, billId) {
   const property = getRows().find((item) => item.address === row.unit || item.tenant === row.tenant);
   return {
+    organization_id: currentOrganization?.id,
     tenant_bill_id: billId,
     property_id: property?.id || null,
     unit_label: row.unit || "",
@@ -537,6 +548,7 @@ async function loadSavedTenantBills({ quiet = false } = {}) {
   const { data, error } = await supabaseClient
     .from("tenant_bills")
     .select("*, tenant_bill_items(*)")
+    .eq("organization_id", currentOrganization.id)
     .order("bill_year", { ascending: false })
     .order("bill_month", { ascending: false })
     .order("created_at", { ascending: false });
@@ -1110,6 +1122,7 @@ function renderAuthState() {
   document.querySelector("#logoutBtn").classList.toggle("is-hidden", !isLoggedIn);
   document.querySelector("#loadCloudBtn").classList.toggle("is-hidden", !isLoggedIn);
   document.querySelector("#importCloudBtn").classList.toggle("is-hidden", !isLoggedIn);
+  renderOrganizationState();
 }
 
 async function loadSupabaseSession() {
@@ -1124,9 +1137,12 @@ async function loadSupabaseSession() {
   }
   supabaseSession = data.session;
   renderAuthState();
-  if (supabaseSession) loadRemittanceProfilesFromCloud({ quiet: true });
-  if (supabaseSession) loadUtilityHistoryFromCloud({ quiet: true });
-  if (supabaseSession) loadSavedTenantBills({ quiet: true });
+  if (supabaseSession) {
+    await initializeOrganization();
+    loadRemittanceProfilesFromCloud({ quiet: true });
+    loadUtilityHistoryFromCloud({ quiet: true });
+    loadSavedTenantBills({ quiet: true });
+  }
 }
 
 async function loginSupabase() {
@@ -1150,6 +1166,7 @@ async function loginSupabase() {
   els.loginPassword.value = "";
   els.authPassword.value = "";
   renderAuthState();
+  await initializeOrganization();
   await loadRemittanceProfilesFromCloud();
   await loadUtilityHistoryFromCloud({ quiet: true });
   await loadSavedTenantBills({ quiet: true });
@@ -1159,13 +1176,93 @@ async function logoutSupabase() {
   if (!supabaseClient) return;
   await supabaseClient.auth.signOut();
   supabaseSession = null;
+  currentOrganization = null;
+  currentOrgRole = "";
   els.loginPassword.value = "";
   els.authPassword.value = "";
   renderAuthState();
+  renderOrganizationState();
+}
+
+function renderOrganizationState() {
+  if (!supabaseSession) {
+    els.organizationState.textContent = "尚未登入";
+    els.teamMessage.textContent = "登入後可邀請協作者。";
+    document.querySelector("#inviteMemberBtn").disabled = true;
+    els.inviteEmail.disabled = true;
+    els.inviteRole.disabled = true;
+    return;
+  }
+  if (!currentOrganization) {
+    els.organizationState.textContent = "尚未載入團隊";
+    els.teamMessage.textContent = "正在載入團隊資料...";
+    return;
+  }
+  const roleText = { owner: "擁有者", editor: "可編輯", viewer: "只能查看" }[currentOrgRole] || "成員";
+  els.organizationState.textContent = `${currentOrganization.name || "房租管理"} · ${roleText}`;
+  const manageable = canManageCurrentOrg();
+  document.querySelector("#inviteMemberBtn").disabled = !manageable;
+  els.inviteEmail.disabled = !manageable;
+  els.inviteRole.disabled = !manageable;
+  els.teamMessage.textContent = manageable ? "輸入 Email 可邀請協作者。" : "只有擁有者可以邀請協作者。";
+}
+
+async function initializeOrganization() {
+  if (!supabaseClient || !supabaseSession) return;
+  const { error: acceptError } = await supabaseClient.rpc("accept_pending_invitations");
+  if (acceptError) {
+    setTeamMessage(`接受邀請失敗：${acceptError.message}`);
+  }
+
+  const { data: orgId, error: ensureError } = await supabaseClient.rpc("ensure_default_organization");
+  if (ensureError) {
+    setTeamMessage(`載入團隊失敗：${ensureError.message}`);
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("organization_members")
+    .select("role, organizations(id,name)")
+    .eq("organization_id", orgId)
+    .eq("user_id", supabaseSession.user.id)
+    .single();
+  if (error) {
+    setTeamMessage(`讀取團隊失敗：${error.message}`);
+    return;
+  }
+  currentOrganization = data.organizations;
+  currentOrgRole = data.role;
+  renderOrganizationState();
+}
+
+async function inviteOrganizationMember() {
+  if (!canManageCurrentOrg()) {
+    setTeamMessage("只有擁有者可以邀請協作者。");
+    return;
+  }
+  const email = els.inviteEmail.value.trim().toLowerCase();
+  const role = els.inviteRole.value;
+  if (!email) {
+    setTeamMessage("請輸入協作者 Email。");
+    return;
+  }
+  const { error } = await supabaseClient.from("organization_invitations").upsert({
+    organization_id: currentOrganization.id,
+    email,
+    role,
+    accepted_at: null
+  }, { onConflict: "organization_id,email" });
+  if (error) {
+    setTeamMessage(`邀請失敗：${error.message}`);
+    return;
+  }
+  els.inviteEmail.value = "";
+  setTeamMessage(`已邀請 ${email}，對方建立帳號並登入後會自動加入。`);
 }
 
 function propertyPayload(row, year, index) {
   return {
+    organization_id: currentOrganization?.id,
     rent_year: Number(year),
     sort_order: index,
     address: row.address || "",
@@ -1183,11 +1280,23 @@ function propertyPayload(row, year, index) {
 }
 
 function canSyncCloud() {
-  return Boolean(supabaseClient && supabaseSession);
+  return Boolean(supabaseClient && supabaseSession && currentOrganization?.id);
+}
+
+function canEditCurrentOrg() {
+  return ["owner", "editor"].includes(currentOrgRole);
+}
+
+function canManageCurrentOrg() {
+  return currentOrgRole === "owner";
 }
 
 function setCloudMessage(message) {
   if (els.authMessage) els.authMessage.textContent = message;
+}
+
+function setTeamMessage(message) {
+  if (els.teamMessage) els.teamMessage.textContent = message;
 }
 
 function handleCloudError(error, action) {
@@ -1235,12 +1344,13 @@ async function syncPaymentToCloud(row, year, month) {
   if (!canSyncCloud() || !row.id) return;
   const monthNumber = Number(String(month).replace("月", ""));
   const { error } = await supabaseClient.from("rent_payments").upsert({
+    organization_id: currentOrganization.id,
     property_id: row.id,
     rent_year: Number(year),
     rent_month: monthNumber,
     payment_text: row.payments?.[month] || "",
     notes: row.notes || ""
-  }, { onConflict: "owner_id,property_id,rent_year,rent_month" });
+  }, { onConflict: "organization_id,property_id,rent_year,rent_month" });
   if (handleCloudError(error, "同步收款")) return;
   setCloudMessage(`${year} ${month} 收款紀錄已同步到雲端。`);
 }
@@ -1248,13 +1358,14 @@ async function syncPaymentToCloud(row, year, month) {
 async function upsertPropertyPaymentsToCloud(row, year) {
   if (!canSyncCloud() || !row.id) return;
   const paymentRows = MONTHS.map((month, monthIndex) => ({
+    organization_id: currentOrganization.id,
     property_id: row.id,
     rent_year: Number(year),
     rent_month: monthIndex + 1,
     payment_text: row.payments?.[month] || "",
     notes: row.notes || ""
   }));
-  const { error } = await supabaseClient.from("rent_payments").upsert(paymentRows, { onConflict: "owner_id,property_id,rent_year,rent_month" });
+  const { error } = await supabaseClient.from("rent_payments").upsert(paymentRows, { onConflict: "organization_id,property_id,rent_year,rent_month" });
   handleCloudError(error, "同步月份收款");
 }
 
@@ -1267,6 +1378,7 @@ async function deletePropertyFromCloud(row) {
 
 function remittancePayload(profile, index) {
   return {
+    organization_id: currentOrganization?.id,
     bank_name: profile.bank || "",
     account_number: profile.account || "",
     payee_name: profile.payee || "",
@@ -1288,6 +1400,7 @@ async function loadRemittanceProfilesFromCloud({ quiet = false } = {}) {
   const { data, error } = await supabaseClient
     .from("remittance_profiles")
     .select("*")
+    .eq("organization_id", currentOrganization.id)
     .order("is_default", { ascending: false })
     .order("created_at", { ascending: true });
   if (handleCloudError(error, "載入匯款資料")) return;
@@ -1365,12 +1478,12 @@ async function importLocalDataToCloud() {
   if (!window.confirm("這會清除你帳號目前雲端的物件與收款紀錄，再匯入本機資料。確定繼續？")) return;
 
   els.authMessage.textContent = "正在匯入雲端...";
-  const { error: deletePaymentsError } = await supabaseClient.from("rent_payments").delete().eq("owner_id", supabaseSession.user.id);
+  const { error: deletePaymentsError } = await supabaseClient.from("rent_payments").delete().eq("organization_id", currentOrganization.id);
   if (deletePaymentsError) {
     els.authMessage.textContent = deletePaymentsError.message;
     return;
   }
-  const { error: deletePropertiesError } = await supabaseClient.from("properties").delete().eq("owner_id", supabaseSession.user.id);
+  const { error: deletePropertiesError } = await supabaseClient.from("properties").delete().eq("organization_id", currentOrganization.id);
   if (deletePropertiesError) {
     els.authMessage.textContent = deletePropertiesError.message;
     return;
@@ -1399,6 +1512,7 @@ async function importLocalDataToCloud() {
         const propertyId = propertyIdMap.get(`${year}-${index}`);
         if (!propertyId) return;
         paymentRows.push({
+          organization_id: currentOrganization.id,
           property_id: propertyId,
           rent_year: Number(year),
           rent_month: monthIndex + 1,
@@ -1427,6 +1541,7 @@ async function loadCloudData() {
   const { data: propertyRows, error: propertyError } = await supabaseClient
     .from("properties")
     .select("*")
+    .eq("organization_id", currentOrganization.id)
     .order("rent_year", { ascending: true })
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
@@ -1441,7 +1556,8 @@ async function loadCloudData() {
 
   const { data: paymentRows, error: paymentError } = await supabaseClient
     .from("rent_payments")
-    .select("property_id,rent_year,rent_month,payment_text,notes");
+    .select("property_id,rent_year,rent_month,payment_text,notes")
+    .eq("organization_id", currentOrganization.id);
   if (paymentError) {
     els.authMessage.textContent = paymentError.message;
     return;
@@ -1624,6 +1740,7 @@ els.loginEmail.addEventListener("keydown", (event) => {
   if (event.key === "Enter") els.loginPassword.focus();
 });
 document.querySelector("#logoutBtn").addEventListener("click", logoutSupabase);
+document.querySelector("#inviteMemberBtn").addEventListener("click", inviteOrganizationMember);
 document.querySelector("#loadCloudBtn").addEventListener("click", loadCloudData);
 document.querySelector("#importCloudBtn").addEventListener("click", importLocalDataToCloud);
 document.querySelector("#addPropertyBtn").addEventListener("click", () => openPropertyDialog(null));

@@ -64,6 +64,18 @@
           <button id="importCloudBtn" class="quiet-button is-hidden" type="button">匯入本機資料到雲端</button>
           <p id="authMessage"></p>
         </div>
+
+        <div class="sidebar-card team-card">
+          <span class="label">多人協作</span>
+          <strong id="organizationState">尚未載入團隊</strong>
+          <input id="inviteEmail" type="email" placeholder="協作者 Email" autocomplete="off" />
+          <select id="inviteRole">
+            <option value="editor">可編輯</option>
+            <option value="viewer">只能查看</option>
+          </select>
+          <button id="inviteMemberBtn" class="quiet-button" type="button">邀請協作者</button>
+          <p id="teamMessage"></p>
+        </div>
       </aside>
 
       <main class="workspace">
