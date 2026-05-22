@@ -1114,13 +1114,12 @@ function renderAuthState() {
   const isLoggedIn = Boolean(userEmail);
   els.loginScreen.classList.toggle("is-hidden", isLoggedIn);
   els.authState.textContent = userEmail ? `已登入：${userEmail}` : "尚未登入";
-  els.authMessage.textContent = userEmail ? "可從雲端載入資料，或先把目前本機資料匯入雲端。" : "登入後才能讀寫 Supabase 資料。";
+  els.authMessage.textContent = userEmail ? "已登入，系統會自動載入並同步雲端資料。" : "登入後才能讀寫 Supabase 資料。";
   els.loginMessage.textContent = userEmail ? "" : "請登入後使用系統。";
   els.authEmail.classList.toggle("is-hidden", isLoggedIn);
   els.authPassword.classList.toggle("is-hidden", isLoggedIn);
   document.querySelector("#loginBtn").classList.toggle("is-hidden", isLoggedIn);
   document.querySelector("#logoutBtn").classList.toggle("is-hidden", !isLoggedIn);
-  document.querySelector("#loadCloudBtn").classList.toggle("is-hidden", !isLoggedIn);
   els.newPassword.classList.toggle("is-hidden", !isLoggedIn);
   els.confirmPassword.classList.toggle("is-hidden", !isLoggedIn);
   document.querySelector("#changePasswordBtn").classList.toggle("is-hidden", !isLoggedIn);
@@ -1141,9 +1140,7 @@ async function loadSupabaseSession() {
   renderAuthState();
   if (supabaseSession) {
     await initializeOrganization();
-    loadRemittanceProfilesFromCloud({ quiet: true });
-    loadUtilityHistoryFromCloud({ quiet: true });
-    loadSavedTenantBills({ quiet: true });
+    await loadCloudData();
   }
 }
 
@@ -1171,9 +1168,7 @@ async function loginSupabase() {
   els.confirmPassword.value = "";
   renderAuthState();
   await initializeOrganization();
-  await loadRemittanceProfilesFromCloud();
-  await loadUtilityHistoryFromCloud({ quiet: true });
-  await loadSavedTenantBills({ quiet: true });
+  await loadCloudData();
 }
 
 async function logoutSupabase() {
@@ -1567,6 +1562,10 @@ async function importLocalDataToCloud() {
 
 async function loadCloudData() {
   if (!supabaseClient || !supabaseSession) return;
+  if (!currentOrganization?.id) {
+    els.authMessage.textContent = "尚未載入團隊資料，請稍後再試。";
+    return;
+  }
   els.authMessage.textContent = "正在從雲端載入...";
   await loadRemittanceProfilesFromCloud({ quiet: true });
   await loadUtilityHistoryFromCloud({ quiet: true });
@@ -1778,7 +1777,6 @@ els.confirmPassword.addEventListener("keydown", (event) => {
   if (event.key === "Enter") changePassword();
 });
 document.querySelector("#inviteMemberBtn").addEventListener("click", inviteOrganizationMember);
-document.querySelector("#loadCloudBtn").addEventListener("click", loadCloudData);
 document.querySelector("#addPropertyBtn").addEventListener("click", () => openPropertyDialog(null));
 document.querySelector("#addUtilityTenantBtn").addEventListener("click", () => {
   utilityTenants.push({ name: "", start: "", end: "", charge: "tenant", electricPrevious: 0, electricCurrent: 0, waterPrevious: 0, waterCurrent: 0 });

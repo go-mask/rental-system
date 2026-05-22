@@ -60,14 +60,14 @@ supabase-migration-002-organizations.sql
 2. 建立 Authentication 使用者並測試登入/登出。
 3. 執行 `supabase-migration-001-rent-year.sql`。
 4. 建立或確認雲端物件資料。
-5. 按「從雲端載入」確認資料可讀回。
+5. 登入後系統會自動從雲端載入資料，確認資料可讀回。
 6. 物件資料與每月收款紀錄已支援登入後背景同步到 Supabase。
 7. 再串 `remittance_profiles`、水電帳期與帳單報表。
 8. 最後部署 GitHub Pages。
 
 ## 目前同步範圍
 
-- 從雲端載入 `properties` 與 `rent_payments`
+- 登入後自動從雲端載入 `properties` 與 `rent_payments`
 - 物件資料與收款紀錄雲端讀寫
 - 編輯收款日期/狀態後同步該月份紀錄
 - 編輯物件資料後同步該物件列
