@@ -77,10 +77,9 @@ supabase-migration-002-organizations.sql
 - 雲端沒有匯款資料時，用本機資料建立第一批資料
 - 新增匯款資料後同步到雲端
 - 刪除匯款資料後同步刪除雲端資料
-- 匯入本機歷史水電帳期到 `utility_periods` 與 `utility_readings`
-- 從雲端載入歷史水電帳期，供租客帳單下拉套用
+- 歷史水電帳期可從 `utility_periods` 與 `utility_readings` 合併顯示為已存帳單
 - 儲存目前租客帳單到 `tenant_bills` 與 `tenant_bill_items`
-- 從已存帳單下拉載入過去帳單快照
+- 從已存帳單下拉載入過去帳單快照與歷史水電帳期
 - 刪除已存帳單時一併刪除帳單明細
 - 多人協作：擁有者可用 Email 邀請 editor/viewer，受邀者登入後自動加入同一份資料
 

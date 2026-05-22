@@ -68,7 +68,6 @@ const els = {
   settlementSummary: document.querySelector("#settlementSummary"),
   tenantSplitResult: document.querySelector("#tenantSplitResult"),
   billType: document.querySelector("#billType"),
-  utilityHistorySelect: document.querySelector("#utilityHistorySelect"),
   savedBillSelect: document.querySelector("#savedBillSelect"),
   billAddress: document.querySelector("#billAddress"),
   billYear: document.querySelector("#billYear"),
@@ -300,7 +299,6 @@ function renderBillControls() {
 
   renderRemittanceOptions();
   renderBillTenantSource();
-  renderUtilityHistoryOptions();
   renderSavedBillOptions();
   applyBillPropertyDefaults(false);
   updateBillDueDate();
@@ -319,39 +317,6 @@ function renderSavedBillOptions() {
 function savedBillLabel(bill) {
   const type = bill.bill_type === "shared" ? "分錶" : "簡易";
   return `${bill.bill_year}年${bill.bill_month}月 · ${type} · ${bill.address || "未填地址"}`;
-}
-
-function renderUtilityHistoryOptions() {
-  const history = window.utilityHistory || [];
-  const current = els.utilityHistorySelect.value;
-  els.utilityHistorySelect.innerHTML = history.length
-    ? history.map((item, index) => `<option value="${index}">${escapeHtml(item.period)} · ${escapeHtml(item.address)}</option>`).join("")
-    : `<option value="">尚未匯入歷史水電資料</option>`;
-  if (current && [...els.utilityHistorySelect.options].some((option) => option.value === current)) {
-    els.utilityHistorySelect.value = current;
-  }
-}
-
-function applyUtilityHistory() {
-  const item = (window.utilityHistory || [])[Number(els.utilityHistorySelect.value)];
-  if (!item) return;
-  els.billType.value = "shared";
-  els.billElectricTotal.value = Number(item.electricBillTotal || 0);
-  els.billWaterTotal.value = Number(item.waterBillTotal || 0);
-  billPeriodOverride = item.period || "";
-  billAddressOverride = item.address || "";
-  billTenants = item.tenants.map((tenant) => ({
-    unit: tenant.unit || "",
-    tenant: tenant.tenant || "",
-    rent: Number(tenant.rent || 0),
-    other: 0,
-    electricPrevious: Number(tenant.electricPrevious || 0),
-    electricCurrent: Number(tenant.electricCurrent || 0),
-    waterPrevious: Number(tenant.waterPrevious || 0),
-    waterCurrent: Number(tenant.waterCurrent || 0)
-  }));
-  renderBillTenantRows();
-  renderTenantBill();
 }
 
 function utilityPeriodPayload(item) {
@@ -417,6 +382,43 @@ function utilityHistoryFromCloud(period) {
   };
 }
 
+function utilityHistoryBillFromCloud(period) {
+  const history = utilityHistoryFromCloud(period);
+  return {
+    id: `utility:${history.id}`,
+    source: "utility_history",
+    bill_type: "shared",
+    address: history.address,
+    bill_year: history.periodYear,
+    bill_month: history.periodMonth,
+    due_date: period.due_date || null,
+    utility_period_id: history.id,
+    note: period.notes || "",
+    officialElectricTotal: history.electricBillTotal,
+    officialWaterTotal: history.waterBillTotal,
+    tenant_bill_items: history.tenants.map((tenant, index) => ({
+      id: `utility:${history.id}:${index}`,
+      unit_label: tenant.unit || "",
+      tenant_name: tenant.tenant || "",
+      rent_amount: Math.round(Number(tenant.rent || 0)),
+      electric_fee: Math.round(Number(tenant.electricFee || 0)),
+      water_fee: Math.round(Number(tenant.waterFee || 0)),
+      other_amount: Math.round(Number(tenant.other || 0)),
+      total_due: Math.round(Number(tenant.totalDue || 0)),
+      meter_snapshot: {
+        electricPrevious: Number(tenant.electricPrevious || 0),
+        electricCurrent: Number(tenant.electricCurrent || 0),
+        electricUsage: Number(tenant.electricUsage || 0),
+        waterPrevious: Number(tenant.waterPrevious || 0),
+        waterCurrent: Number(tenant.waterCurrent || 0),
+        waterUsage: Number(tenant.waterUsage || 0),
+        officialElectricTotal: history.electricBillTotal,
+        officialWaterTotal: history.waterBillTotal
+      }
+    }))
+  };
+}
+
 async function importUtilityHistoryToCloud() {
   if (!canSyncCloud()) {
     setCloudMessage("請先登入 Supabase。");
@@ -467,12 +469,11 @@ async function loadUtilityHistoryFromCloud({ quiet = false } = {}) {
   if (handleCloudError(error, "載入歷史水電")) return;
 
   if (!data.length) {
-    if (!quiet) setCloudMessage("雲端目前沒有歷史水電資料，可先按「匯入歷史水電到雲端」。");
+    if (!quiet) setCloudMessage("雲端目前沒有歷史水電資料。");
     return;
   }
 
   window.utilityHistory = data.map(utilityHistoryFromCloud);
-  renderUtilityHistoryOptions();
   if (!quiet) setCloudMessage(`已從雲端載入 ${data.length} 個水電帳期。`);
 }
 
@@ -509,7 +510,9 @@ function tenantBillItemPayload(row, billId) {
       electricUsage: Number(row.electricUsage || 0),
       waterPrevious: Number(row.waterPrevious || 0),
       waterCurrent: Number(row.waterCurrent || 0),
-      waterUsage: Number(row.waterUsage || 0)
+      waterUsage: Number(row.waterUsage || 0),
+      officialElectricTotal: numberValue(els.billElectricTotal),
+      officialWaterTotal: numberValue(els.billWaterTotal)
     }
   };
 }
@@ -537,15 +540,22 @@ async function saveTenantBillToCloud() {
 }
 
 function savedBillFromCloud(bill) {
+  const items = bill.tenant_bill_items || [];
+  const firstItem = items[0];
+  const snapshot = firstItem?.meter_snapshot || {};
+  const electricTotal = Number(snapshot.officialElectricTotal || 0) || items.reduce((sum, item) => sum + Number(item.electric_fee || 0), 0);
+  const waterTotal = Number(snapshot.officialWaterTotal || 0) || items.reduce((sum, item) => sum + Number(item.water_fee || 0), 0);
   return {
     ...bill,
-    tenant_bill_items: [...(bill.tenant_bill_items || [])].sort((a, b) => String(a.unit_label || "").localeCompare(String(b.unit_label || ""), "zh-Hant"))
+    officialElectricTotal: electricTotal,
+    officialWaterTotal: waterTotal,
+    tenant_bill_items: [...items].sort((a, b) => String(a.unit_label || "").localeCompare(String(b.unit_label || ""), "zh-Hant"))
   };
 }
 
 async function loadSavedTenantBills({ quiet = false } = {}) {
   if (!canSyncCloud()) return;
-  const { data, error } = await supabaseClient
+  const { data: bills, error } = await supabaseClient
     .from("tenant_bills")
     .select("*, tenant_bill_items(*)")
     .eq("organization_id", currentOrganization.id)
@@ -553,7 +563,23 @@ async function loadSavedTenantBills({ quiet = false } = {}) {
     .order("bill_month", { ascending: false })
     .order("created_at", { ascending: false });
   if (handleCloudError(error, "載入已存帳單")) return;
-  savedTenantBills = data.map(savedBillFromCloud);
+  const { data: utilityPeriods, error: utilityError } = await supabaseClient
+    .from("utility_periods")
+    .select("*, utility_readings(*)")
+    .eq("organization_id", currentOrganization.id)
+    .order("period_year", { ascending: false })
+    .order("period_month", { ascending: false });
+  if (handleCloudError(utilityError, "載入歷史水電")) return;
+
+  const savedUtilityIds = new Set((bills || []).map((bill) => bill.utility_period_id).filter(Boolean));
+  const historyBills = (utilityPeriods || [])
+    .filter((period) => !savedUtilityIds.has(period.id))
+    .map(utilityHistoryBillFromCloud);
+  savedTenantBills = [...(bills || []).map(savedBillFromCloud), ...historyBills].sort((a, b) => {
+    const periodCompare = Number(b.bill_year || 0) - Number(a.bill_year || 0) || Number(b.bill_month || 0) - Number(a.bill_month || 0);
+    if (periodCompare) return periodCompare;
+    return String(b.created_at || "").localeCompare(String(a.created_at || ""));
+  });
   renderSavedBillOptions();
   if (!quiet) setCloudMessage(`已載入 ${savedTenantBills.length} 張已存帳單。`);
 }
@@ -569,6 +595,8 @@ function loadSelectedTenantBill() {
   els.billMonth.value = String(bill.bill_month || 1);
   els.billDueDate.value = bill.due_date || "";
   els.billNote.value = bill.note || "";
+  els.billElectricTotal.value = Number(bill.officialElectricTotal || 0);
+  els.billWaterTotal.value = Number(bill.officialWaterTotal || 0);
   billAddressOverride = bill.address || "";
   billPeriodOverride = `${bill.bill_year}年${bill.bill_month}月`;
   billTenants = (bill.tenant_bill_items || []).map((item) => ({
@@ -599,7 +627,9 @@ async function deleteSelectedTenantBill() {
   }
   if (!window.confirm(`確定要刪除「${savedBillLabel(bill)}」嗎？帳單明細也會一併刪除。`)) return;
 
-  const { error } = await supabaseClient.from("tenant_bills").delete().eq("id", bill.id);
+  const targetTable = bill.source === "utility_history" ? "utility_periods" : "tenant_bills";
+  const targetId = bill.source === "utility_history" ? bill.utility_period_id : bill.id;
+  const { error } = await supabaseClient.from(targetTable).delete().eq("id", targetId);
   if (handleCloudError(error, "刪除帳單")) return;
   savedTenantBills.splice(index, 1);
   renderSavedBillOptions();
@@ -1568,7 +1598,6 @@ async function loadCloudData() {
   }
   els.authMessage.textContent = "正在從雲端載入...";
   await loadRemittanceProfilesFromCloud({ quiet: true });
-  await loadUtilityHistoryFromCloud({ quiet: true });
   await loadSavedTenantBills({ quiet: true });
   const { data: propertyRows, error: propertyError } = await supabaseClient
     .from("properties")
@@ -1800,11 +1829,7 @@ document.querySelector("#addBillTenantBtn").addEventListener("click", () => {
 });
 document.querySelector("#printPaymentsBtn").addEventListener("click", () => printCurrentView("payments"));
 document.querySelector("#printBillBtn").addEventListener("click", () => printCurrentView("tenantBill"));
-document.querySelector("#applyUtilityHistoryBtn").addEventListener("click", applyUtilityHistory);
-document.querySelector("#loadUtilityHistoryCloudBtn").addEventListener("click", () => loadUtilityHistoryFromCloud());
-document.querySelector("#importUtilityHistoryCloudBtn").addEventListener("click", importUtilityHistoryToCloud);
 document.querySelector("#saveTenantBillBtn").addEventListener("click", saveTenantBillToCloud);
-document.querySelector("#loadSavedBillBtn").addEventListener("click", loadSelectedTenantBill);
 document.querySelector("#deleteSavedBillBtn").addEventListener("click", deleteSelectedTenantBill);
 window.addEventListener("beforeprint", () => {
   if (!document.body.dataset.printView && activeView === "payments") {
@@ -1819,7 +1844,6 @@ if (supabaseClient) {
     supabaseSession = session;
     renderAuthState();
     if (session) loadRemittanceProfilesFromCloud({ quiet: true });
-    if (session) loadUtilityHistoryFromCloud({ quiet: true });
     if (session) loadSavedTenantBills({ quiet: true });
   });
 }
@@ -1881,6 +1905,8 @@ document.querySelectorAll("#tenantBillView input, #tenantBillView select").forEa
   input.addEventListener("input", renderTenantBill);
   input.addEventListener("change", renderTenantBill);
 });
+
+els.savedBillSelect.addEventListener("change", loadSelectedTenantBill);
 
 els.billAddress.addEventListener("change", () => {
   billAddressOverride = "";
