@@ -250,18 +250,23 @@ button {
   padding-inline: 10px;
 }
 
+.sidebar-dashboard-panels {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.sidebar-collapsed .sidebar-dashboard-panels {
+  display: none;
+}
+
 .sidebar-card {
-  margin-top: auto;
   display: grid;
   gap: 10px;
   padding: 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.05);
-}
-
-.sidebar-card + .sidebar-card {
-  margin-top: 12px;
 }
 
 .auth-card input,

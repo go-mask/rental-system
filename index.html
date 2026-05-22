@@ -47,29 +47,31 @@
           <button class="nav-item" type="button" data-view="tenantBill"><span class="nav-icon">單</span><span class="nav-label">租客帳單</span></button>
         </nav>
 
-        <div class="sidebar-card auth-card">
-          <span class="label">雲端同步</span>
-          <strong id="authState">尚未登入</strong>
-          <input id="authEmail" type="email" placeholder="Email" autocomplete="email" />
-          <input id="authPassword" type="password" placeholder="Password" autocomplete="current-password" />
-          <button id="loginBtn" class="primary-button" type="button">登入 Supabase</button>
-          <button id="logoutBtn" class="quiet-button is-hidden" type="button">登出</button>
-          <input id="newPassword" class="is-hidden" type="password" placeholder="新密碼（至少 8 碼）" autocomplete="new-password" />
-          <input id="confirmPassword" class="is-hidden" type="password" placeholder="再次輸入新密碼" autocomplete="new-password" />
-          <button id="changePasswordBtn" class="quiet-button is-hidden" type="button">變更密碼</button>
-          <p id="authMessage"></p>
-        </div>
+        <div id="sidebarDashboardPanels" class="sidebar-dashboard-panels">
+          <div class="sidebar-card auth-card">
+            <span class="label">雲端同步</span>
+            <strong id="authState">尚未登入</strong>
+            <input id="authEmail" type="email" placeholder="Email" autocomplete="email" />
+            <input id="authPassword" type="password" placeholder="Password" autocomplete="current-password" />
+            <button id="loginBtn" class="primary-button" type="button">登入 Supabase</button>
+            <button id="logoutBtn" class="quiet-button is-hidden" type="button">登出</button>
+            <input id="newPassword" class="is-hidden" type="password" placeholder="新密碼（至少 8 碼）" autocomplete="new-password" />
+            <input id="confirmPassword" class="is-hidden" type="password" placeholder="再次輸入新密碼" autocomplete="new-password" />
+            <button id="changePasswordBtn" class="quiet-button is-hidden" type="button">變更密碼</button>
+            <p id="authMessage"></p>
+          </div>
 
-        <div class="sidebar-card team-card">
-          <span class="label">多人協作</span>
-          <strong id="organizationState">尚未載入團隊</strong>
-          <input id="inviteEmail" type="email" placeholder="協作者 Email" autocomplete="off" />
-          <select id="inviteRole">
-            <option value="editor">可編輯</option>
-            <option value="viewer">只能查看</option>
-          </select>
-          <button id="inviteMemberBtn" class="quiet-button" type="button">邀請協作者</button>
-          <p id="teamMessage"></p>
+          <div class="sidebar-card team-card">
+            <span class="label">多人協作</span>
+            <strong id="organizationState">尚未載入團隊</strong>
+            <input id="inviteEmail" type="email" placeholder="協作者 Email" autocomplete="off" />
+            <select id="inviteRole">
+              <option value="editor">可編輯</option>
+              <option value="viewer">只能查看</option>
+            </select>
+            <button id="inviteMemberBtn" class="quiet-button" type="button">邀請協作者</button>
+            <p id="teamMessage"></p>
+          </div>
         </div>
       </aside>
 
