@@ -35,7 +35,6 @@ const els = {
   paymentPrintMeta: document.querySelector("#paymentPrintMeta"),
   paymentTable: document.querySelector("#paymentTable"),
   propertyCards: document.querySelector("#propertyCards"),
-  storageState: document.querySelector("#storageState"),
   authState: document.querySelector("#authState"),
   authEmail: document.querySelector("#authEmail"),
   authPassword: document.querySelector("#authPassword"),
@@ -165,7 +164,6 @@ function persistRemittanceProfiles() {
 
 function persist() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  els.storageState.textContent = `已保存於本機瀏覽器 ${new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" })}`;
 }
 
 function money(value) {
@@ -1123,7 +1121,6 @@ function renderAuthState() {
   document.querySelector("#loginBtn").classList.toggle("is-hidden", isLoggedIn);
   document.querySelector("#logoutBtn").classList.toggle("is-hidden", !isLoggedIn);
   document.querySelector("#loadCloudBtn").classList.toggle("is-hidden", !isLoggedIn);
-  document.querySelector("#importCloudBtn").classList.toggle("is-hidden", !isLoggedIn);
   els.newPassword.classList.toggle("is-hidden", !isLoggedIn);
   els.confirmPassword.classList.toggle("is-hidden", !isLoggedIn);
   document.querySelector("#changePasswordBtn").classList.toggle("is-hidden", !isLoggedIn);
@@ -1586,7 +1583,7 @@ async function loadCloudData() {
     return;
   }
   if (!propertyRows.length) {
-    els.authMessage.textContent = "雲端目前沒有資料，可先按「匯入本機資料到雲端」。";
+    els.authMessage.textContent = "雲端目前沒有資料，請先建立物件資料。";
     return;
   }
 
@@ -1782,7 +1779,6 @@ els.confirmPassword.addEventListener("keydown", (event) => {
 });
 document.querySelector("#inviteMemberBtn").addEventListener("click", inviteOrganizationMember);
 document.querySelector("#loadCloudBtn").addEventListener("click", loadCloudData);
-document.querySelector("#importCloudBtn").addEventListener("click", importLocalDataToCloud);
 document.querySelector("#addPropertyBtn").addEventListener("click", () => openPropertyDialog(null));
 document.querySelector("#addUtilityTenantBtn").addEventListener("click", () => {
   utilityTenants.push({ name: "", start: "", end: "", charge: "tenant", electricPrevious: 0, electricCurrent: 0, waterPrevious: 0, waterCurrent: 0 });
@@ -1879,12 +1875,6 @@ document.querySelector("#resetSettlementBtn").addEventListener("click", () => {
   renderTenantSplitRows();
   renderSettlement();
 });
-document.querySelector("#resetDataBtn").addEventListener("click", () => {
-  state = structuredClone(initialData);
-  persist();
-  render();
-});
-
 document.querySelectorAll("#settlementView input, #settlementView select").forEach((input) => {
   input.addEventListener("input", renderSettlement);
   input.addEventListener("change", renderSettlement);
