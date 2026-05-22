@@ -1,0 +1,4 @@
+window.RENTAL_SUPABASE_CONFIG = {
+  url: "https://oxhguhetthgcxoelnfja.supabase.co",
+  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94aGd1aGV0dGhnY3hvZWxuZmphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NTc2MDQsImV4cCI6MjA5NTAzMzYwNH0.ioVLU7YfqExS1qOr52erGkCKiP_ViVg_TZStt4Zyf0c"
+};

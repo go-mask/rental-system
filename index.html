@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>房租收入管理系統</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell" id="appShell">
+      <aside class="sidebar">
+        <div class="brand-row">
+          <div class="brand">
+            <div class="brand-mark">租</div>
+            <div class="brand-copy">
+              <h1>房租收入管理</h1>
+              <p>收款、逾期與年度紀錄</p>
+            </div>
+          </div>
+          <button id="sidebarToggle" class="sidebar-toggle" type="button" aria-label="收合側邊欄" aria-expanded="true">
+            <span aria-hidden="true">‹</span>
+          </button>
+        </div>
+
+        <nav class="nav-list" aria-label="主要功能">
+          <button class="nav-item active" type="button" data-view="dashboard"><span class="nav-icon">覽</span><span class="nav-label">總覽</span></button>
+          <button class="nav-item" type="button" data-view="payments"><span class="nav-icon">收</span><span class="nav-label">收款維護</span></button>
+          <button class="nav-item" type="button" data-view="properties"><span class="nav-icon">物</span><span class="nav-label">物件資料</span></button>
+          <button class="nav-item" type="button" data-view="settlement"><span class="nav-icon">算</span><span class="nav-label">退租結算</span></button>
+          <button class="nav-item" type="button" data-view="tenantBill"><span class="nav-icon">單</span><span class="nav-label">租客帳單</span></button>
+        </nav>
+
+        <div class="sidebar-card">
+          <span class="label">資料狀態</span>
+          <strong id="storageState">已載入 Excel 初始資料</strong>
+          <button id="resetDataBtn" class="quiet-button" type="button">重置示範資料</button>
+        </div>
+
+        <div class="sidebar-card auth-card">
+          <span class="label">雲端同步</span>
+          <strong id="authState">尚未登入</strong>
+          <input id="authEmail" type="email" placeholder="Email" autocomplete="email" />
+          <input id="authPassword" type="password" placeholder="Password" autocomplete="current-password" />
+          <button id="loginBtn" class="primary-button" type="button">登入 Supabase</button>
+          <button id="logoutBtn" class="quiet-button is-hidden" type="button">登出</button>
+          <button id="loadCloudBtn" class="quiet-button is-hidden" type="button">從雲端載入</button>
+          <button id="importCloudBtn" class="quiet-button is-hidden" type="button">匯入本機資料到雲端</button>
+          <p id="authMessage"></p>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Rental Operations</p>
+            <h2 id="pageTitle">總覽</h2>
+          </div>
+          <div class="toolbar">
+            <label>
+              年度
+              <select id="yearSelect"></select>
+            </label>
+            <label>
+              月份
+              <select id="monthSelect"></select>
+            </label>
+            <button id="exportBtn" class="primary-button" type="button">匯出 CSV</button>
+          </div>
+        </header>
+
+        <section id="dashboardView" class="view active-view">
+          <div class="kpi-grid">
+            <article class="kpi-card">
+              <span>本月應收</span>
+              <strong id="expectedRent">$0</strong>
+            </article>
+            <article class="kpi-card">
+              <span>已收筆數</span>
+              <strong id="paidCount">0</strong>
+            </article>
+            <article class="kpi-card warning">
+              <span>待追蹤</span>
+              <strong id="openCount">0</strong>
+            </article>
+            <article class="kpi-card">
+              <span>全年已收估算</span>
+              <strong id="yearCollected">$0</strong>
+            </article>
+          </div>
+
+          <div class="content-grid">
+            <section class="panel wide">
+              <div class="panel-header">
+                <div>
+                  <h3>本月收款狀態</h3>
+                  <p id="statusSubtitle">依目前月份與繳費週期推估</p>
+                </div>
+                <div class="segmented" role="group" aria-label="狀態篩選">
+                  <button type="button" class="segment active" data-status="all">全部</button>
+                  <button type="button" class="segment" data-status="paid">已收</button>
+                  <button type="button" class="segment" data-status="pending">未收</button>
+                  <button type="button" class="segment" data-status="attention">注意</button>
+                </div>
+              </div>
+              <div id="statusList" class="status-list"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <h3>年度收款節奏</h3>
+                  <p>每月已填入收款紀錄的比例</p>
+                </div>
+              </div>
+              <div id="monthBars" class="month-bars"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="paymentsView" class="view">
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h3>收款維護</h3>
+                <p>點選月份欄位即可更新日期、備註或特殊狀態</p>
+              </div>
+              <div class="panel-actions">
+                <input id="paymentSearch" class="search-input" type="search" placeholder="搜尋地址、租客或帳號" />
+                <button id="printPaymentsBtn" class="primary-button" type="button">列印收款表</button>
+              </div>
+            </div>
+            <div class="print-only payment-print-header">
+              <h2>房租收款維護表</h2>
+              <p id="paymentPrintMeta"></p>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table" id="paymentTable">
+                <thead></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section id="propertiesView" class="view">
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h3>物件資料</h3>
+                <p>管理租金、租客、繳費週期與備註</p>
+              </div>
+              <button id="addPropertyBtn" class="primary-button" type="button">新增物件</button>
+            </div>
+            <div id="propertyCards" class="property-grid"></div>
+          </section>
+        </section>
+
+        <section id="settlementView" class="view">
+          <div class="settlement-layout">
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <h3>中途退租結算</h3>
+                  <p>計算租金日割、押金抵扣、預繳租金退還與其他費用</p>
+                </div>
+                <button id="resetSettlementBtn" class="quiet-button" type="button">清空計算</button>
+              </div>
+
+              <div class="form-grid">
+                <label>結算地址<input id="settlementAddress" placeholder="例：某市某路 1 號 5 樓" /></label>
+                <label>租客姓名<input id="settlementTenant" placeholder="例：王小明" /></label>
+                <label>月租金<input id="settlementRent" type="number" min="0" value="0" /></label>
+                <label>押金<input id="settlementDeposit" type="number" min="0" value="0" /></label>
+                <label>計租月份<input id="settlementMonth" type="month" /></label>
+                <label>退租日<input id="moveOutDate" type="date" /></label>
+                <label>本月已收租金<input id="prepaidRent" type="number" min="0" value="0" /></label>
+                <label>未繳租金<input id="unpaidRent" type="number" min="0" value="0" /></label>
+                <label>修繕/清潔扣款<input id="damageFee" type="number" min="0" value="0" /></label>
+                <label>其他扣款<input id="otherFee" type="number" min="0" value="0" /></label>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <h3>水電抄錶與分攤</h3>
+                  <p>依官方兩月帳單總額，按各分錶用量比例分攤</p>
+                </div>
+                <button id="addUtilityTenantBtn" class="primary-button" type="button">新增租客分攤</button>
+              </div>
+
+              <div class="form-grid utility-grid">
+                <label>官方帳單狀態
+                  <select id="utilityBillStatus">
+                    <option value="pending">尚未收到，先列待結算</option>
+                    <option value="received">已收到，可正式結算</option>
+                  </select>
+                </label>
+                <label>帳單起日<input id="utilityStart" type="date" /></label>
+                <label>帳單迄日<input id="utilityEnd" type="date" /></label>
+                <label>官方電費總額<input id="electricBillTotal" type="number" min="0" value="0" /></label>
+                <label>官方水費總額<input id="waterBillTotal" type="number" min="0" value="0" /></label>
+                <label>其他共用費<input id="sharedOtherFee" type="number" min="0" value="0" /></label>
+                <label>分攤方式
+                  <select id="splitMode">
+                    <option value="usage">依分錶用量比例</option>
+                    <option value="usageWithDays">分錶用量，其他費用依天數</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="table-wrap compact-wrap">
+                <table class="data-table settlement-table" id="tenantSplitTable">
+                  <thead>
+                    <tr>
+                      <th>租客</th>
+                      <th>分攤起日</th>
+                      <th>分攤迄日</th>
+                      <th>收費狀態</th>
+                      <th>上次電度</th>
+                      <th>本次電度</th>
+                      <th>上次水度</th>
+                      <th>本次水度</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="panel result-panel">
+              <div class="panel-header">
+                <div>
+                  <h3>結算結果</h3>
+                  <p>金額正數代表應退租客，負數代表租客仍需補繳</p>
+                </div>
+              </div>
+              <div id="settlementSummary" class="settlement-summary"></div>
+              <div id="tenantSplitResult" class="split-result"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="tenantBillView" class="view">
+          <div class="bill-builder">
+            <section class="panel no-print">
+              <div class="panel-header">
+                <div>
+                  <h3>租客每月帳單報表</h3>
+                  <p>產生可列印的租金、水電分攤與匯款通知</p>
+                </div>
+                <button id="printBillBtn" class="primary-button" type="button">列印報表</button>
+              </div>
+
+              <div class="bill-control-layout">
+                <section class="bill-field-group">
+                  <header>
+                    <h4>帳單基本資料</h4>
+                  </header>
+                  <div class="form-grid compact">
+                    <label>帳單類型
+                      <select id="billType">
+                        <option value="simple">租金內含水電 / 租客自行繳官方</option>
+                        <option value="shared">租金不含水電 / 房東代繳分錶分攤</option>
+                      </select>
+                    </label>
+                    <label>地址<select id="billAddress"></select></label>
+                    <label>帳期年份<select id="billYear"></select></label>
+                    <label>帳期月份<select id="billMonth"></select></label>
+                    <label>繳款期限<input id="billDueDate" type="date" /></label>
+                    <label>帳單備註<input id="billNote" placeholder="例：水電依分錶用量比例分攤" /></label>
+                  </div>
+                </section>
+
+                <section class="bill-field-group">
+                  <header>
+                    <h4>歷史與已存帳單</h4>
+                  </header>
+                  <div class="form-grid compact">
+                    <label class="shared-bill-field wide-field">歷史水電帳期<select id="utilityHistorySelect"></select></label>
+                    <button id="applyUtilityHistoryBtn" class="quiet-button form-button shared-bill-field" type="button">套用歷史帳單</button>
+                    <button id="loadUtilityHistoryCloudBtn" class="quiet-button form-button shared-bill-field" type="button">從雲端載入水電</button>
+                    <button id="importUtilityHistoryCloudBtn" class="quiet-button form-button shared-bill-field" type="button">匯入歷史水電到雲端</button>
+                    <label class="wide-field">已存帳單<select id="savedBillSelect"></select></label>
+                    <button id="loadSavedBillBtn" class="quiet-button form-button" type="button">載入帳單</button>
+                    <button id="deleteSavedBillBtn" class="danger-button form-button" type="button">刪除帳單</button>
+                    <button id="saveTenantBillBtn" class="primary-button form-button" type="button">儲存目前帳單</button>
+                  </div>
+                </section>
+
+                <section class="bill-field-group">
+                  <header>
+                    <h4>匯款資料</h4>
+                  </header>
+                  <div class="form-grid compact">
+                    <label>匯款銀行<select id="billBank"></select></label>
+                    <label>匯款帳號<select id="billAccount"></select></label>
+                    <label>收款人<select id="billPayee"></select></label>
+                    <button id="deleteRemittanceBtn" class="danger-button form-button" type="button">刪除目前匯款資料</button>
+                    <label>新增匯款銀行<input id="newBillBank" placeholder="例：某銀行某分行" /></label>
+                    <label>新增匯款帳號<input id="newBillAccount" placeholder="例：0000-000-000000" /></label>
+                    <label>新增收款人<input id="newBillPayee" placeholder="例：王小明" /></label>
+                    <button id="addRemittanceBtn" class="quiet-button form-button" type="button">新增匯款資料</button>
+                  </div>
+                </section>
+
+                <section class="bill-field-group shared-bill-field">
+                  <header>
+                    <h4>分錶水電</h4>
+                  </header>
+                  <div class="form-grid compact">
+                    <label>官方電費總額<input id="billElectricTotal" type="number" min="0" value="0" /></label>
+                    <label>官方水費總額<input id="billWaterTotal" type="number" min="0" value="0" /></label>
+                  </div>
+                </section>
+              </div>
+
+              <div class="panel-header inner-header shared-bill-section">
+                <div>
+                  <h3>分租單位明細</h3>
+                  <p>上次/本次分錶讀數會用來計算各租客比例</p>
+                </div>
+                <div class="inline-controls">
+                  <select id="billTenantSource"></select>
+                  <button id="addBillTenantBtn" class="quiet-button" type="button">新增帳單租客</button>
+                </div>
+              </div>
+
+              <div class="table-wrap compact-wrap shared-bill-section">
+                <table class="data-table bill-input-table" id="billTenantTable">
+                  <thead>
+                    <tr>
+                      <th>房號/單位</th>
+                      <th>租客</th>
+                      <th>租金</th>
+                      <th>其他</th>
+                      <th>上次電</th>
+                      <th>本次電</th>
+                      <th>上次水</th>
+                      <th>本次水</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="bill-paper" id="billReport">
+              <header class="bill-report-header">
+                <div>
+                  <p class="eyebrow">Tenant Billing Statement</p>
+                  <h2 id="billReportTitle">租客帳單報表</h2>
+                  <p id="billReportAddress">地址</p>
+                </div>
+                <div class="bill-period-box">
+                  <span>帳期</span>
+                  <strong id="billReportPeriod">未填</strong>
+                </div>
+              </header>
+
+              <section id="billSummaryBand" class="bill-summary-band">
+                <div>
+                  <span id="billElectricLabel">官方電費總額</span>
+                  <strong id="billReportElectric">$0</strong>
+                </div>
+                <div>
+                  <span id="billWaterLabel">官方水費總額</span>
+                  <strong id="billReportWater">$0</strong>
+                </div>
+              </section>
+
+              <section id="billExcelReport" class="bill-excel-report"></section>
+
+              <section class="bill-explain">
+                <strong id="billExplainTitle">帳單說明</strong>
+                <p id="billExplainText">租金內含水電或由租客自行向官方繳納者，本報表僅列租金與其他費用。</p>
+                <p id="billReportNote"></p>
+              </section>
+
+              <section id="billShareTableSection" class="bill-share-section">
+                <h3>分租水電分攤明細</h3>
+                <table class="bill-share-table">
+                  <thead>
+                    <tr>
+                      <th>單位</th>
+                      <th>租客</th>
+                      <th>電表本次</th>
+                      <th>電表上次</th>
+                      <th>用電度數</th>
+                      <th>電費</th>
+                      <th>水表本次</th>
+                      <th>水表上次</th>
+                      <th>用水度數</th>
+                      <th>水費</th>
+                      <th>租金</th>
+                      <th>應繳</th>
+                    </tr>
+                  </thead>
+                  <tbody id="billShareTableBody"></tbody>
+                </table>
+              </section>
+
+              <section id="billTenantCards" class="bill-tenant-cards"></section>
+
+              <footer class="bill-footer">
+                <div>
+                  <span>匯款資訊</span>
+                  <strong id="billReportBank">未填</strong>
+                </div>
+                <p>請匯款後保留轉帳紀錄，以方便對帳。若讀數或金額有疑問，請先截圖本報表詢問。</p>
+              </footer>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="editDialog" class="edit-dialog">
+      <form method="dialog" id="editForm">
+        <div class="dialog-header">
+          <div>
+            <span class="label" id="dialogLabel">更新資料</span>
+            <h3 id="dialogTitle">編輯</h3>
+          </div>
+          <button class="icon-button" aria-label="關閉" type="button" data-dialog-cancel>×</button>
+        </div>
+
+        <div id="dialogFields" class="dialog-fields"></div>
+
+        <menu class="dialog-actions">
+          <button class="quiet-button" type="button" data-dialog-cancel>取消</button>
+          <button class="primary-button" id="saveDialogBtn" value="default" type="submit">儲存</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <!-- Private local seed files can be loaded here during local-only maintenance.
+         Keep local-initial-data.js and utility-history.js out of GitHub. -->
+    <script src="app.js"></script>
+  </body>
+</html>
