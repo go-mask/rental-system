@@ -10,7 +10,7 @@
 - 不要把 Database password 放進 GitHub。
 - 不要把 `service_role` key 放進 GitHub。
 - `supabase-config.js` 只放 Project URL 與 anon/publishable key。
-- `local-initial-data.js`、`utility-history.js`、Excel 原始檔不要 commit。
+- Excel 原始檔、轉檔暫存檔與本機 server log 不要 commit。
 
 ## 已加入的部署保護
 
@@ -20,7 +20,7 @@
   - `*.xlsx`
   - 本機 server log
 - `app.js` 已移除硬寫的真實初始資料。
-- `index.html` 預設不載入本機歷史水電檔。
+- `index.html` 不載入本機私有資料檔。
 - `.nojekyll` 已加入，避免 GitHub Pages 對靜態檔案做 Jekyll 處理。
 
 ## 建議 GitHub Pages 設定
@@ -43,18 +43,10 @@ https://你的帳號.github.io/你的-repo-name/
 
 1. 開啟 GitHub Pages 網址。
 2. 登入 Supabase。
-3. 按「從雲端載入」。
-4. 確認物件資料、收款資料、匯款資料、歷史水電、已存帳單都能載入。
-5. 修改一筆收款日期，重新整理後再載入，確認同步正常。
+3. 系統會自動從雲端載入資料。
+4. 確認物件資料、收款資料、匯款資料與已存帳單都能載入。
+5. 修改一筆收款日期，重新整理後確認同步正常。
 
 ## 本機私有資料
 
-`local-initial-data.js` 是從原本 `app.js` 拆出的本機初始資料，只供本機維護或重新匯入使用，不應該推到 GitHub。
-
-如果真的需要在本機用私有初始資料，可在 `index.html` 的 `app.js` 前暫時加入：
-
-```html
-<script src="local-initial-data.js"></script>
-```
-
-歷史水電 Excel 匯入檔同理；正式部署應使用 Supabase 的 `utility_periods` 與 `utility_readings`。
+正式資料以 Supabase 為準。本機若重新產生轉檔暫存檔，請確認檔案仍被 `.gitignore` 排除，不要提交到 GitHub。
