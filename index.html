@@ -7,6 +7,23 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <section id="loginScreen" class="login-screen">
+      <div class="login-panel">
+        <div class="brand-mark">租</div>
+        <div>
+          <p class="eyebrow">Rental Operations</p>
+          <h1>房租收入管理</h1>
+          <p>請登入後使用收款維護、租客帳單與水電分攤資料。</p>
+        </div>
+        <div class="login-form">
+          <label>Email<input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com" /></label>
+          <label>Password<input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password" /></label>
+          <button id="loginScreenBtn" class="primary-button" type="button">登入</button>
+          <p id="loginMessage"></p>
+        </div>
+      </div>
+    </section>
+
     <div class="app-shell" id="appShell">
       <aside class="sidebar">
         <div class="brand-row">

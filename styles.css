@@ -41,6 +41,61 @@ button {
   cursor: pointer;
 }
 
+.login-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 24px;
+  background: linear-gradient(135deg, #eef4f6 0%, #f8fafc 58%, #e8f1ee 100%);
+}
+
+.login-screen.is-hidden {
+  display: none;
+}
+
+.login-panel {
+  width: min(460px, 100%);
+  display: grid;
+  gap: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  padding: 30px;
+  box-shadow: var(--shadow);
+}
+
+.login-panel .brand-mark {
+  background: var(--nav);
+  color: #edf4f7;
+}
+
+.login-panel h1,
+.login-panel p {
+  margin: 0;
+}
+
+.login-panel h1 {
+  font-size: 28px;
+}
+
+.login-panel p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.login-form {
+  display: grid;
+  gap: 12px;
+}
+
+.login-form p {
+  min-height: 20px;
+  font-size: 13px;
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);

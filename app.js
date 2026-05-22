@@ -24,6 +24,10 @@ const els = {
   paidCount: document.querySelector("#paidCount"),
   openCount: document.querySelector("#openCount"),
   yearCollected: document.querySelector("#yearCollected"),
+  loginScreen: document.querySelector("#loginScreen"),
+  loginEmail: document.querySelector("#loginEmail"),
+  loginPassword: document.querySelector("#loginPassword"),
+  loginMessage: document.querySelector("#loginMessage"),
   statusSubtitle: document.querySelector("#statusSubtitle"),
   statusList: document.querySelector("#statusList"),
   monthBars: document.querySelector("#monthBars"),
@@ -1087,20 +1091,25 @@ function renderAuthState() {
   if (!supabaseClient) {
     els.authState.textContent = "未載入 Supabase";
     els.authMessage.textContent = "請確認 supabase-config.js 與網路連線。";
+    els.loginMessage.textContent = "請確認 Supabase 設定與網路連線。";
     document.querySelector("#loginBtn").disabled = true;
+    document.querySelector("#loginScreenBtn").disabled = true;
     document.querySelector("#logoutBtn").classList.add("is-hidden");
     return;
   }
 
   const userEmail = supabaseSession?.user?.email || "";
+  const isLoggedIn = Boolean(userEmail);
+  els.loginScreen.classList.toggle("is-hidden", isLoggedIn);
   els.authState.textContent = userEmail ? `已登入：${userEmail}` : "尚未登入";
   els.authMessage.textContent = userEmail ? "可從雲端載入資料，或先把目前本機資料匯入雲端。" : "登入後才能讀寫 Supabase 資料。";
-  els.authEmail.classList.toggle("is-hidden", Boolean(userEmail));
-  els.authPassword.classList.toggle("is-hidden", Boolean(userEmail));
-  document.querySelector("#loginBtn").classList.toggle("is-hidden", Boolean(userEmail));
-  document.querySelector("#logoutBtn").classList.toggle("is-hidden", !userEmail);
-  document.querySelector("#loadCloudBtn").classList.toggle("is-hidden", !userEmail);
-  document.querySelector("#importCloudBtn").classList.toggle("is-hidden", !userEmail);
+  els.loginMessage.textContent = userEmail ? "" : "請登入後使用系統。";
+  els.authEmail.classList.toggle("is-hidden", isLoggedIn);
+  els.authPassword.classList.toggle("is-hidden", isLoggedIn);
+  document.querySelector("#loginBtn").classList.toggle("is-hidden", isLoggedIn);
+  document.querySelector("#logoutBtn").classList.toggle("is-hidden", !isLoggedIn);
+  document.querySelector("#loadCloudBtn").classList.toggle("is-hidden", !isLoggedIn);
+  document.querySelector("#importCloudBtn").classList.toggle("is-hidden", !isLoggedIn);
 }
 
 async function loadSupabaseSession() {
@@ -1122,19 +1131,23 @@ async function loadSupabaseSession() {
 
 async function loginSupabase() {
   if (!supabaseClient) return;
-  const email = els.authEmail.value.trim();
-  const password = els.authPassword.value;
+  const email = (els.loginEmail.value || els.authEmail.value).trim();
+  const password = els.loginPassword.value || els.authPassword.value;
   if (!email || !password) {
     els.authMessage.textContent = "請輸入 Email 與密碼。";
+    els.loginMessage.textContent = "請輸入 Email 與密碼。";
     return;
   }
   els.authMessage.textContent = "登入中...";
+  els.loginMessage.textContent = "登入中...";
   const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
   if (error) {
     els.authMessage.textContent = error.message;
+    els.loginMessage.textContent = error.message;
     return;
   }
   supabaseSession = data.session;
+  els.loginPassword.value = "";
   els.authPassword.value = "";
   renderAuthState();
   await loadRemittanceProfilesFromCloud();
@@ -1146,6 +1159,8 @@ async function logoutSupabase() {
   if (!supabaseClient) return;
   await supabaseClient.auth.signOut();
   supabaseSession = null;
+  els.loginPassword.value = "";
+  els.authPassword.value = "";
   renderAuthState();
 }
 
@@ -1601,6 +1616,13 @@ els.monthSelect.addEventListener("change", () => {
 els.paymentSearch.addEventListener("input", renderPayments);
 document.querySelector("#exportBtn").addEventListener("click", exportCsv);
 document.querySelector("#loginBtn").addEventListener("click", loginSupabase);
+document.querySelector("#loginScreenBtn").addEventListener("click", loginSupabase);
+els.loginPassword.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") loginSupabase();
+});
+els.loginEmail.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") els.loginPassword.focus();
+});
 document.querySelector("#logoutBtn").addEventListener("click", logoutSupabase);
 document.querySelector("#loadCloudBtn").addEventListener("click", loadCloudData);
 document.querySelector("#importCloudBtn").addEventListener("click", importLocalDataToCloud);
