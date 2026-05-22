@@ -39,6 +39,8 @@ const els = {
   authState: document.querySelector("#authState"),
   authEmail: document.querySelector("#authEmail"),
   authPassword: document.querySelector("#authPassword"),
+  newPassword: document.querySelector("#newPassword"),
+  confirmPassword: document.querySelector("#confirmPassword"),
   authMessage: document.querySelector("#authMessage"),
   organizationState: document.querySelector("#organizationState"),
   inviteEmail: document.querySelector("#inviteEmail"),
@@ -1122,6 +1124,9 @@ function renderAuthState() {
   document.querySelector("#logoutBtn").classList.toggle("is-hidden", !isLoggedIn);
   document.querySelector("#loadCloudBtn").classList.toggle("is-hidden", !isLoggedIn);
   document.querySelector("#importCloudBtn").classList.toggle("is-hidden", !isLoggedIn);
+  els.newPassword.classList.toggle("is-hidden", !isLoggedIn);
+  els.confirmPassword.classList.toggle("is-hidden", !isLoggedIn);
+  document.querySelector("#changePasswordBtn").classList.toggle("is-hidden", !isLoggedIn);
   renderOrganizationState();
 }
 
@@ -1165,6 +1170,8 @@ async function loginSupabase() {
   supabaseSession = data.session;
   els.loginPassword.value = "";
   els.authPassword.value = "";
+  els.newPassword.value = "";
+  els.confirmPassword.value = "";
   renderAuthState();
   await initializeOrganization();
   await loadRemittanceProfilesFromCloud();
@@ -1180,8 +1187,37 @@ async function logoutSupabase() {
   currentOrgRole = "";
   els.loginPassword.value = "";
   els.authPassword.value = "";
+  els.newPassword.value = "";
+  els.confirmPassword.value = "";
   renderAuthState();
   renderOrganizationState();
+}
+
+async function changePassword() {
+  if (!supabaseClient || !supabaseSession) return;
+  const password = els.newPassword.value;
+  const confirmation = els.confirmPassword.value;
+  if (password.length < 8) {
+    els.authMessage.textContent = "新密碼至少需要 8 個字元。";
+    els.newPassword.focus();
+    return;
+  }
+  if (password !== confirmation) {
+    els.authMessage.textContent = "兩次輸入的新密碼不一致。";
+    els.confirmPassword.focus();
+    return;
+  }
+
+  els.authMessage.textContent = "正在變更密碼...";
+  const { error } = await supabaseClient.auth.updateUser({ password });
+  if (error) {
+    els.authMessage.textContent = error.message;
+    return;
+  }
+
+  els.newPassword.value = "";
+  els.confirmPassword.value = "";
+  els.authMessage.textContent = "密碼已更新。下次登入請使用新密碼。";
 }
 
 function renderOrganizationState() {
@@ -1740,6 +1776,10 @@ els.loginEmail.addEventListener("keydown", (event) => {
   if (event.key === "Enter") els.loginPassword.focus();
 });
 document.querySelector("#logoutBtn").addEventListener("click", logoutSupabase);
+document.querySelector("#changePasswordBtn").addEventListener("click", changePassword);
+els.confirmPassword.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") changePassword();
+});
 document.querySelector("#inviteMemberBtn").addEventListener("click", inviteOrganizationMember);
 document.querySelector("#loadCloudBtn").addEventListener("click", loadCloudData);
 document.querySelector("#importCloudBtn").addEventListener("click", importLocalDataToCloud);
