@@ -81,11 +81,8 @@ supabase-migration-002-organizations.sql
 - 儲存目前租客帳單到 `tenant_bills` 與 `tenant_bill_items`
 - 從已存帳單下拉載入過去帳單快照與歷史水電帳期
 - 刪除已存帳單時一併刪除帳單明細
+- 儲存退租結算快照到 `settlement_records`
 - 多人協作：擁有者可用 Email 邀請 editor/viewer，受邀者登入後自動加入同一份資料
-
-尚未同步：
-
-- 退租結算儲存紀錄
 
 ## 多人協作
 

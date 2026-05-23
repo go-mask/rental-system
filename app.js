@@ -71,6 +71,8 @@ const els = {
   splitMode: document.querySelector("#splitMode"),
   tenantSplitTable: document.querySelector("#tenantSplitTable"),
   settlementSummary: document.querySelector("#settlementSummary"),
+  settlementMessage: document.querySelector("#settlementMessage"),
+  settlementPrintMeta: document.querySelector("#settlementPrintMeta"),
   tenantSplitResult: document.querySelector("#tenantSplitResult"),
   billType: document.querySelector("#billType"),
   savedBillSelect: document.querySelector("#savedBillSelect"),
@@ -1116,7 +1118,7 @@ function formatMeter(value) {
   return Number(value || 0).toLocaleString("zh-TW", { maximumFractionDigits: 2 });
 }
 
-function renderSettlement() {
+function settlementCalculation() {
   const monthlyRent = numberValue(els.settlementRent);
   const deposit = numberValue(els.settlementDeposit);
   const prepaidRent = numberValue(els.prepaidRent);
@@ -1135,30 +1137,36 @@ function renderSettlement() {
   const utilityForMoveOutTenant = utility.billReceived ? utility.rows[0]?.tenantCharge || 0 : 0;
   const deductions = unpaidRent + damageFee + otherFee + utilityForMoveOutTenant;
   const finalRefund = deposit + prepaidRefund - deductions;
+  return { monthlyRent, deposit, prepaidRent, unpaidRent, damageFee, otherFee, monthDays, usedDays, dailyRent, rentUntilMoveOut, prepaidRefund, utility, utilityForMoveOutTenant, deductions, finalRefund };
+}
+
+function renderSettlement() {
+  const result = settlementCalculation();
 
   els.settlementSummary.innerHTML = [
-    summaryCard("月租日割", `${money(Math.round(dailyRent))} / 日`, `${usedDays} / ${monthDays} 天`),
-    summaryCard("退租日前租金", money(rentUntilMoveOut), "以退租日含當日計算"),
-    summaryCard("預繳租金應退", money(prepaidRefund), "已收租金扣除實住天數"),
-    summaryCard("水電分攤", utility.billReceived ? money(utilityForMoveOutTenant) : "待結算", utility.billReceived ? "取第一列退租租客金額" : "官方兩月帳單未到，暫不進押金結算"),
-    summaryCard("押金", money(deposit), "可抵扣未繳與費用"),
-    summaryCard("扣款合計", money(deductions), "未繳租金、修繕、其他、水電"),
-    summaryCard(finalRefund >= 0 ? "應退租客" : "租客需補繳", money(Math.abs(finalRefund)), finalRefund >= 0 ? "押金與退租金扣除費用後" : "費用超過押金與退租金", `final ${finalRefund < 0 ? "negative" : ""}`)
+    summaryCard("月租日割", `${money(Math.round(result.dailyRent))} / 日`, `${result.usedDays} / ${result.monthDays} 天`),
+    summaryCard("退租日前租金", money(result.rentUntilMoveOut), "以退租日含當日計算"),
+    summaryCard("預繳租金應退", money(result.prepaidRefund), "已收租金扣除實住天數"),
+    summaryCard("水電分攤", result.utility.billReceived ? money(result.utilityForMoveOutTenant) : "待結算", result.utility.billReceived ? "取第一列退租租客金額" : "官方兩月帳單未到，暫不進押金結算"),
+    summaryCard("押金", money(result.deposit), "可抵扣未繳與費用"),
+    summaryCard("扣款合計", money(result.deductions), "未繳租金、修繕、其他、水電"),
+    summaryCard(result.finalRefund >= 0 ? "應退租客" : "租客需補繳", money(Math.abs(result.finalRefund)), result.finalRefund >= 0 ? "押金與退租金扣除費用後" : "費用超過押金與退租金", `final ${result.finalRefund < 0 ? "negative" : ""}`)
   ].join("");
 
-  els.tenantSplitResult.innerHTML = utility.rows.length
-    ? utility.rows.map((row) => `
+  els.tenantSplitResult.innerHTML = result.utility.rows.length
+    ? result.utility.rows.map((row) => `
       <article class="split-row">
         <strong>${escapeHtml(row.name || "未命名")}</strong>
         <span>電 ${row.electricUsage.toLocaleString("zh-TW")} 度</span>
         <span>水 ${row.waterUsage.toLocaleString("zh-TW")} 度</span>
         <span>${row.charge === "owner" ? "屋主吸收" : `居住 ${row.activeDays} 天`}</span>
-        <span>${utility.billReceived ? `電費 ${money(row.electric)}` : "電費待結"}</span>
-        <span>${utility.billReceived ? `水費 ${money(row.water)}` : "水費待結"}</span>
-        <strong>${utility.billReceived ? money(row.tenantCharge) : "待帳單"}</strong>
+        <span>${result.utility.billReceived ? `電費 ${money(row.electric)}` : "電費待結"}</span>
+        <span>${result.utility.billReceived ? `水費 ${money(row.water)}` : "水費待結"}</span>
+        <strong>${result.utility.billReceived ? money(row.tenantCharge) : "待帳單"}</strong>
       </article>
     `).join("")
     : `<p class="meta-text">尚未輸入分攤租客。</p>`;
+  els.settlementPrintMeta.textContent = `${els.settlementAddress.value || "未填地址"}｜${els.settlementTenant.value || "未填租客"}｜退租日 ${els.moveOutDate.value || "未填"}｜列印日期 ${new Date().toLocaleDateString("zh-TW")}`;
 }
 
 function summaryCard(label, value, hint, className = "") {
@@ -1169,6 +1177,68 @@ function summaryCard(label, value, hint, className = "") {
       <small class="meta-text">${escapeHtml(hint)}</small>
     </article>
   `;
+}
+
+function settlementPayload() {
+  const result = settlementCalculation();
+  const source = getRows()[Number(els.settlementSource.value)];
+  return {
+    organization_id: currentOrganization?.id,
+    property_id: source?.id || null,
+    address: els.settlementAddress.value || "",
+    tenant_name: els.settlementTenant.value || "",
+    move_out_date: els.moveOutDate.value || null,
+    calculation: {
+      savedAt: new Date().toISOString(),
+      settlementMonth: els.settlementMonth.value || "",
+      inputs: {
+        monthlyRent: numberValue(els.settlementRent),
+        deposit: numberValue(els.settlementDeposit),
+        prepaidRent: numberValue(els.prepaidRent),
+        unpaidRent: numberValue(els.unpaidRent),
+        damageFee: numberValue(els.damageFee),
+        otherFee: numberValue(els.otherFee),
+        utilityBillStatus: els.utilityBillStatus.value,
+        utilityStart: els.utilityStart.value || "",
+        utilityEnd: els.utilityEnd.value || "",
+        electricBillTotal: numberValue(els.electricBillTotal),
+        waterBillTotal: numberValue(els.waterBillTotal),
+        sharedOtherFee: numberValue(els.sharedOtherFee),
+        splitMode: els.splitMode.value
+      },
+      utilityTenants,
+      result: {
+        monthDays: result.monthDays,
+        usedDays: result.usedDays,
+        dailyRent: result.dailyRent,
+        rentUntilMoveOut: result.rentUntilMoveOut,
+        prepaidRefund: result.prepaidRefund,
+        utilityForMoveOutTenant: result.utilityForMoveOutTenant,
+        deductions: result.deductions,
+        finalRefund: result.finalRefund,
+        utilityRows: result.utility.rows
+      }
+    }
+  };
+}
+
+async function saveSettlementToCloud() {
+  if (!canSyncCloud()) {
+    els.settlementMessage.textContent = "請先登入 Supabase。";
+    return;
+  }
+  const payload = settlementPayload();
+  if (!payload.address && !payload.tenant_name) {
+    els.settlementMessage.textContent = "請先選擇物件或填寫結算地址、租客姓名。";
+    return;
+  }
+  els.settlementMessage.textContent = "正在儲存退租結算...";
+  const { error } = await supabaseClient.from("settlement_records").insert(payload);
+  if (error) {
+    els.settlementMessage.textContent = `儲存失敗：${error.message}`;
+    return;
+  }
+  els.settlementMessage.textContent = "退租結算已儲存。";
 }
 
 function calculateUtilities() {
@@ -1939,11 +2009,16 @@ document.querySelector("#addBillTenantBtn").addEventListener("click", () => {
 });
 document.querySelector("#printPaymentsBtn").addEventListener("click", () => printCurrentView("payments"));
 document.querySelector("#printBillBtn").addEventListener("click", () => printCurrentView("tenantBill"));
+document.querySelector("#printSettlementBtn").addEventListener("click", () => printCurrentView("settlement"));
 document.querySelector("#saveTenantBillBtn").addEventListener("click", saveTenantBillToCloud);
+document.querySelector("#saveSettlementBtn").addEventListener("click", saveSettlementToCloud);
 document.querySelector("#deleteSavedBillBtn").addEventListener("click", deleteSelectedTenantBill);
 window.addEventListener("beforeprint", () => {
   if (!document.body.dataset.printView && activeView === "payments") {
     document.body.dataset.printView = "payments";
+  }
+  if (!document.body.dataset.printView && activeView === "settlement") {
+    document.body.dataset.printView = "settlement";
   }
 });
 window.addEventListener("afterprint", () => {

@@ -188,17 +188,26 @@
 
         <section id="settlementView" class="view">
           <div class="settlement-layout">
+            <div class="print-only settlement-print-header">
+              <h2>退租結算表</h2>
+              <p id="settlementPrintMeta"></p>
+            </div>
             <section class="panel">
               <div class="panel-header">
                 <div>
                   <h3>中途退租結算</h3>
                   <p>計算租金日割、押金抵扣、預繳租金退還與其他費用</p>
                 </div>
-                <button id="resetSettlementBtn" class="quiet-button" type="button">清空計算</button>
+                <div class="panel-actions">
+                  <button id="saveSettlementBtn" class="primary-button" type="button">儲存結算</button>
+                  <button id="printSettlementBtn" class="quiet-button" type="button">列印結算表</button>
+                  <button id="resetSettlementBtn" class="quiet-button" type="button">清空計算</button>
+                </div>
               </div>
+              <p id="settlementMessage" class="meta-text"></p>
 
               <div class="form-grid">
-                <label>帶入物件<select id="settlementSource"></select></label>
+                <label class="settlement-source-field">帶入物件<select id="settlementSource"></select></label>
                 <label>結算地址<input id="settlementAddress" placeholder="例：某市某路 1 號 5 樓" /></label>
                 <label>租客姓名<input id="settlementTenant" placeholder="例：王小明" /></label>
                 <label>月租金<input id="settlementRent" type="number" min="0" value="0" /></label>
