@@ -1637,6 +1637,7 @@ textarea {
   body[data-print-view="settlement"] .settlement-summary {
     grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 2mm;
+    margin-top: 2mm;
   }
 
   body[data-print-view="settlement"] .summary-card,
@@ -1669,7 +1670,7 @@ textarea {
 
   body[data-print-view="settlement"] .split-result {
     gap: 1.5mm;
-    margin-top: 2mm;
+    margin-top: 0;
   }
 
   body[data-print-view="settlement"] .split-row {
