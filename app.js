@@ -20,7 +20,6 @@ let propertyViewMode = localStorage.getItem(PROPERTY_VIEW_MODE_KEY) === "list" ?
 
 const els = {
   yearSelect: document.querySelector("#yearSelect"),
-  monthSelect: document.querySelector("#monthSelect"),
   pageTitle: document.querySelector("#pageTitle"),
   topbarToolbar: document.querySelector("#topbarToolbar"),
   sidebarDashboardPanels: document.querySelector("#sidebarDashboardPanels"),
@@ -283,8 +282,6 @@ function renderSelectors() {
     .map((year) => `<option value="${year}">${year}</option>`)
     .join("");
   els.yearSelect.value = currentYear;
-  els.monthSelect.innerHTML = MONTHS.map((month) => `<option value="${month}">${month}</option>`).join("");
-  els.monthSelect.value = currentMonth;
 }
 
 function renderBillControls() {
@@ -2076,11 +2073,6 @@ document.querySelectorAll(".segment").forEach((button) => {
 
 els.yearSelect.addEventListener("change", () => {
   currentYear = els.yearSelect.value;
-  render();
-});
-
-els.monthSelect.addEventListener("change", () => {
-  currentMonth = els.monthSelect.value;
   render();
 });
 
