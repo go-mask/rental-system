@@ -51,6 +51,7 @@ const els = {
   teamMessage: document.querySelector("#teamMessage"),
   appShell: document.querySelector("#appShell"),
   sidebarToggle: document.querySelector("#sidebarToggle"),
+  settlementSource: document.querySelector("#settlementSource"),
   settlementAddress: document.querySelector("#settlementAddress"),
   settlementTenant: document.querySelector("#settlementTenant"),
   settlementRent: document.querySelector("#settlementRent"),
@@ -306,6 +307,48 @@ function renderBillControls() {
   renderSavedBillOptions();
   applyBillPropertyDefaults(false);
   updateBillDueDate();
+}
+
+function propertyOptionLabel(row) {
+  return `${row.address || "未填地址"}${row.tenant ? ` · ${row.tenant}` : ""}`;
+}
+
+function renderSettlementControls() {
+  const current = els.settlementSource.value;
+  const options = getRows()
+    .map((row, index) => `<option value="${index}">${escapeHtml(propertyOptionLabel(row))}</option>`)
+    .join("");
+  els.settlementSource.innerHTML = options ? `<option value="">手動輸入</option>${options}` : `<option value="">沒有物件資料</option>`;
+  if (current && [...els.settlementSource.options].some((option) => option.value === current)) {
+    els.settlementSource.value = current;
+  }
+}
+
+function currentSettlementMonthValue() {
+  const year = Number(currentYear);
+  const month = Number(String(currentMonth).replace("月", ""));
+  if (!year || !month) return `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+  return `${year}-${String(month).padStart(2, "0")}`;
+}
+
+function applySettlementPropertyDefaults() {
+  const row = getRows()[Number(els.settlementSource.value)];
+  if (!row) return;
+  els.settlementAddress.value = row.address || "";
+  els.settlementTenant.value = row.tenant || "";
+  els.settlementRent.value = Number(row.rent || 0);
+  els.settlementMonth.value = currentSettlementMonthValue();
+  utilityTenants[0] = {
+    ...(utilityTenants[0] || {}),
+    name: row.tenant || "退租租客",
+    charge: "tenant",
+    electricPrevious: Number(row.electricPrevious || 0),
+    electricCurrent: Number(row.electricCurrent || 0),
+    waterPrevious: Number(row.waterPrevious || 0),
+    waterCurrent: Number(row.waterCurrent || 0)
+  };
+  renderTenantSplitRows();
+  renderSettlement();
 }
 
 function renderSavedBillOptions() {
@@ -1181,6 +1224,7 @@ function render() {
   updateTopbarToolbar();
   updateSidebarDashboardPanels();
   renderSelectors();
+  renderSettlementControls();
   renderBillControls();
   renderAuthState();
   renderDashboard();
@@ -1932,6 +1976,7 @@ document.querySelector("#addRemittanceBtn").addEventListener("click", () => {
 });
 document.querySelector("#deleteRemittanceBtn").addEventListener("click", deleteCurrentRemittanceProfile);
 document.querySelector("#resetSettlementBtn").addEventListener("click", () => {
+  els.settlementSource.value = "";
   [
     els.settlementAddress,
     els.settlementTenant,
@@ -1963,6 +2008,7 @@ document.querySelector("#resetSettlementBtn").addEventListener("click", () => {
   renderTenantSplitRows();
   renderSettlement();
 });
+els.settlementSource.addEventListener("change", applySettlementPropertyDefaults);
 document.querySelectorAll("#settlementView input, #settlementView select").forEach((input) => {
   input.addEventListener("input", renderSettlement);
   input.addEventListener("change", renderSettlement);
