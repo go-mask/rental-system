@@ -1456,6 +1456,11 @@ textarea {
     margin: 9mm;
   }
 
+  @page settlement-sheet {
+    size: A4 landscape;
+    margin: 8mm;
+  }
+
   body {
     background: #fff;
     color: #111;
@@ -1501,6 +1506,7 @@ textarea {
 
   body[data-print-view="settlement"] #settlementView {
     display: block !important;
+    page: settlement-sheet;
   }
 
   body[data-print-view="payments"] .workspace,
@@ -1545,7 +1551,21 @@ textarea {
     color: #111;
   }
 
+  body[data-print-view="settlement"] .settlement-print-header {
+    margin-bottom: 3mm;
+  }
+
+  body[data-print-view="settlement"] .settlement-print-header h2 {
+    font-size: 18px;
+    margin-bottom: 1mm;
+  }
+
+  body[data-print-view="settlement"] .settlement-print-header p {
+    font-size: 10.5px;
+  }
+
   body[data-print-view="settlement"] #settlementMessage,
+  body[data-print-view="settlement"] .settlement-record-field,
   body[data-print-view="settlement"] .settlement-source-field,
   body[data-print-view="settlement"] .panel-actions,
   body[data-print-view="settlement"] .settlement-table .danger-button {
@@ -1553,30 +1573,34 @@ textarea {
   }
 
   body[data-print-view="settlement"] .settlement-layout {
-    gap: 6mm;
+    gap: 3mm;
   }
 
   body[data-print-view="settlement"] .form-grid,
   body[data-print-view="settlement"] .utility-grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 3mm;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 2mm 3mm;
+  }
+
+  body[data-print-view="settlement"] .compact-wrap {
+    margin-top: 2mm;
   }
 
   body[data-print-view="settlement"] label {
     color: #111;
-    font-size: 12px;
-    gap: 1.5mm;
+    font-size: 10px;
+    gap: 0.8mm;
   }
 
   body[data-print-view="settlement"] input,
   body[data-print-view="settlement"] select {
     min-height: 0;
-    padding: 2px 0;
+    padding: 1px 0;
     border: 0;
     border-bottom: 1px solid #111;
     border-radius: 0;
     color: #111;
-    font-size: 13px;
+    font-size: 11px;
     background: transparent;
   }
 
@@ -1595,17 +1619,24 @@ textarea {
 
   body[data-print-view="settlement"] .settlement-table th,
   body[data-print-view="settlement"] .settlement-table td {
-    padding: 5px 3px;
+    padding: 3px 2px;
     border-right: 1px solid #111;
     border-bottom: 1px solid #111;
     color: #111 !important;
-    font-size: 10.5px;
-    line-height: 1.45;
+    font-size: 9px;
+    line-height: 1.25;
+  }
+
+  body[data-print-view="settlement"] .settlement-table input,
+  body[data-print-view="settlement"] .settlement-table select {
+    font-size: 9px;
+    padding: 0;
+    border-bottom: 0;
   }
 
   body[data-print-view="settlement"] .settlement-summary {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 3mm;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 2mm;
   }
 
   body[data-print-view="settlement"] .summary-card,
@@ -1613,6 +1644,48 @@ textarea {
     border: 1px solid #111;
     box-shadow: none;
     break-inside: avoid;
+  }
+
+  body[data-print-view="settlement"] .summary-card {
+    gap: 1mm;
+    padding: 2mm;
+    border-radius: 0;
+  }
+
+  body[data-print-view="settlement"] .summary-card span {
+    color: #111;
+    font-size: 9px;
+  }
+
+  body[data-print-view="settlement"] .summary-card strong {
+    font-size: 13px;
+  }
+
+  body[data-print-view="settlement"] .summary-card small {
+    color: #111;
+    font-size: 8px;
+    line-height: 1.2;
+  }
+
+  body[data-print-view="settlement"] .split-result {
+    gap: 1.5mm;
+    margin-top: 2mm;
+  }
+
+  body[data-print-view="settlement"] .split-row {
+    grid-template-columns: 1.1fr repeat(6, minmax(0, 1fr));
+    gap: 1.5mm;
+    padding: 2mm;
+    border-radius: 0;
+    font-size: 9px;
+  }
+
+  body[data-print-view="settlement"] .split-row strong {
+    font-size: 10px;
+  }
+
+  body[data-print-view="settlement"] .split-row span {
+    color: #111;
   }
 
   body[data-print-view="payments"] .table-wrap {
