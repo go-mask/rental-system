@@ -895,6 +895,16 @@ textarea {
   border-color: #ead8aa;
 }
 
+.formula-card.violet {
+  background: #f5f1ff;
+  border-color: #d7cbed;
+}
+
+.formula-card.indigo {
+  background: #eef2ff;
+  border-color: #c8d1ee;
+}
+
 .formula-card.red,
 .formula-card.negative {
   background: #fff1f1;
@@ -1704,7 +1714,7 @@ textarea {
   body[data-print-view="settlement"] .settlement-summary {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 2mm;
-    margin-top: 2mm;
+    margin-top: 5mm;
   }
 
   body[data-print-view="settlement"] .summary-card,
