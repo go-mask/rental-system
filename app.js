@@ -815,7 +815,23 @@ function renderPayments() {
 
 function printCurrentView(view) {
   document.body.dataset.printView = view;
-  window.print();
+  applyPrintPageStyle(view);
+  setTimeout(() => window.print(), 50);
+}
+
+function applyPrintPageStyle(view = document.body.dataset.printView || activeView) {
+  let style = document.querySelector("#dynamicPrintPageStyle");
+  if (!style) {
+    style = document.createElement("style");
+    style.id = "dynamicPrintPageStyle";
+    document.head.appendChild(style);
+  }
+  const pageRules = {
+    payments: "@page { size: A4 landscape; margin: 9mm; }",
+    settlement: "@page { size: A4 landscape; margin: 8mm; }",
+    tenantBill: "@page { size: A4; margin: 14mm; }"
+  };
+  style.textContent = `@media print { ${pageRules[view] || pageRules.tenantBill} }`;
 }
 
 function renderProperties() {
@@ -2112,6 +2128,7 @@ window.addEventListener("beforeprint", () => {
   if (!document.body.dataset.printView && activeView === "settlement") {
     document.body.dataset.printView = "settlement";
   }
+  applyPrintPageStyle(document.body.dataset.printView || activeView);
 });
 window.addEventListener("afterprint", () => {
   delete document.body.dataset.printView;
