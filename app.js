@@ -73,6 +73,7 @@ const els = {
   settlementSummary: document.querySelector("#settlementSummary"),
   settlementMessage: document.querySelector("#settlementMessage"),
   settlementPrintMeta: document.querySelector("#settlementPrintMeta"),
+  savedSettlementSelect: document.querySelector("#savedSettlementSelect"),
   tenantSplitResult: document.querySelector("#tenantSplitResult"),
   billType: document.querySelector("#billType"),
   savedBillSelect: document.querySelector("#savedBillSelect"),
@@ -134,6 +135,7 @@ let billTenants = [
 let billPeriodOverride = "";
 let billAddressOverride = "";
 let savedTenantBills = [];
+let savedSettlementRecords = [];
 
 let remittanceProfiles = loadRemittanceProfiles();
 
@@ -323,6 +325,22 @@ function renderSettlementControls() {
   els.settlementSource.innerHTML = options ? `<option value="">手動輸入</option>${options}` : `<option value="">沒有物件資料</option>`;
   if (current && [...els.settlementSource.options].some((option) => option.value === current)) {
     els.settlementSource.value = current;
+  }
+  renderSavedSettlementOptions();
+}
+
+function savedSettlementLabel(record) {
+  const savedDate = record.created_at ? new Date(record.created_at).toLocaleDateString("zh-TW") : "未記錄日期";
+  return `${record.move_out_date || "未填退租日"} · ${record.tenant_name || "未填租客"} · ${record.address || "未填地址"} · ${savedDate}`;
+}
+
+function renderSavedSettlementOptions() {
+  const current = els.savedSettlementSelect.value;
+  els.savedSettlementSelect.innerHTML = savedSettlementRecords.length
+    ? `<option value="">選擇已存結算</option>${savedSettlementRecords.map((record, index) => `<option value="${index}">${escapeHtml(savedSettlementLabel(record))}</option>`).join("")}`
+    : `<option value="">尚無已存結算</option>`;
+  if (current && [...els.savedSettlementSelect.options].some((option) => option.value === current)) {
+    els.savedSettlementSelect.value = current;
   }
 }
 
@@ -1233,12 +1251,84 @@ async function saveSettlementToCloud() {
     return;
   }
   els.settlementMessage.textContent = "正在儲存退租結算...";
-  const { error } = await supabaseClient.from("settlement_records").insert(payload);
+  const { data, error } = await supabaseClient.from("settlement_records").insert(payload).select("*").single();
   if (error) {
     els.settlementMessage.textContent = `儲存失敗：${error.message}`;
     return;
   }
+  savedSettlementRecords.unshift(data);
+  renderSavedSettlementOptions();
   els.settlementMessage.textContent = "退租結算已儲存。";
+}
+
+async function loadSavedSettlementRecords({ quiet = false } = {}) {
+  if (!canSyncCloud()) return;
+  const { data, error } = await supabaseClient
+    .from("settlement_records")
+    .select("*")
+    .eq("organization_id", currentOrganization.id)
+    .order("move_out_date", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false });
+  if (error) {
+    if (!quiet) els.settlementMessage.textContent = `載入已存結算失敗：${error.message}`;
+    return;
+  }
+  savedSettlementRecords = data || [];
+  renderSavedSettlementOptions();
+  if (!quiet) els.settlementMessage.textContent = `已載入 ${savedSettlementRecords.length} 筆已存結算。`;
+}
+
+function loadSelectedSettlement() {
+  const record = savedSettlementRecords[Number(els.savedSettlementSelect.value)];
+  if (!record) return;
+  const calculation = record.calculation || {};
+  const inputs = calculation.inputs || {};
+  els.settlementSource.value = "";
+  els.settlementAddress.value = record.address || "";
+  els.settlementTenant.value = record.tenant_name || "";
+  els.moveOutDate.value = record.move_out_date || "";
+  els.settlementMonth.value = calculation.settlementMonth || currentSettlementMonthValue();
+  els.settlementRent.value = Number(inputs.monthlyRent || 0);
+  els.settlementDeposit.value = Number(inputs.deposit || 0);
+  els.prepaidRent.value = Number(inputs.prepaidRent || 0);
+  els.unpaidRent.value = Number(inputs.unpaidRent || 0);
+  els.damageFee.value = Number(inputs.damageFee || 0);
+  els.otherFee.value = Number(inputs.otherFee || 0);
+  els.utilityBillStatus.value = inputs.utilityBillStatus || "pending";
+  els.utilityStart.value = inputs.utilityStart || "";
+  els.utilityEnd.value = inputs.utilityEnd || "";
+  els.electricBillTotal.value = Number(inputs.electricBillTotal || 0);
+  els.waterBillTotal.value = Number(inputs.waterBillTotal || 0);
+  els.sharedOtherFee.value = Number(inputs.sharedOtherFee || 0);
+  els.splitMode.value = inputs.splitMode || "usage";
+  utilityTenants = Array.isArray(calculation.utilityTenants) && calculation.utilityTenants.length
+    ? calculation.utilityTenants
+    : [{ name: record.tenant_name || "退租租客", start: "", end: "", charge: "tenant", electricPrevious: 0, electricCurrent: 0, waterPrevious: 0, waterCurrent: 0 }];
+  renderTenantSplitRows();
+  renderSettlement();
+  els.settlementMessage.textContent = `已載入 ${savedSettlementLabel(record)}。`;
+}
+
+async function deleteSelectedSettlement() {
+  if (!canSyncCloud()) {
+    els.settlementMessage.textContent = "請先登入 Supabase。";
+    return;
+  }
+  const index = Number(els.savedSettlementSelect.value);
+  const record = savedSettlementRecords[index];
+  if (!record) {
+    els.settlementMessage.textContent = "目前沒有可刪除的結算。";
+    return;
+  }
+  if (!window.confirm(`確定要刪除「${savedSettlementLabel(record)}」嗎？`)) return;
+  const { error } = await supabaseClient.from("settlement_records").delete().eq("id", record.id);
+  if (error) {
+    els.settlementMessage.textContent = `刪除失敗：${error.message}`;
+    return;
+  }
+  savedSettlementRecords.splice(index, 1);
+  renderSavedSettlementOptions();
+  els.settlementMessage.textContent = "已刪除退租結算。";
 }
 
 function calculateUtilities() {
@@ -1784,6 +1874,7 @@ async function loadCloudData() {
   els.authMessage.textContent = "正在從雲端載入...";
   await loadRemittanceProfilesFromCloud({ quiet: true });
   await loadSavedTenantBills({ quiet: true });
+  await loadSavedSettlementRecords({ quiet: true });
   const { data: propertyRows, error: propertyError } = await supabaseClient
     .from("properties")
     .select("*")
@@ -2013,6 +2104,7 @@ document.querySelector("#printSettlementBtn").addEventListener("click", () => pr
 document.querySelector("#saveTenantBillBtn").addEventListener("click", saveTenantBillToCloud);
 document.querySelector("#saveSettlementBtn").addEventListener("click", saveSettlementToCloud);
 document.querySelector("#deleteSavedBillBtn").addEventListener("click", deleteSelectedTenantBill);
+document.querySelector("#deleteSettlementBtn").addEventListener("click", deleteSelectedSettlement);
 window.addEventListener("beforeprint", () => {
   if (!document.body.dataset.printView && activeView === "payments") {
     document.body.dataset.printView = "payments";
@@ -2030,6 +2122,7 @@ if (supabaseClient) {
     renderAuthState();
     if (session) loadRemittanceProfilesFromCloud({ quiet: true });
     if (session) loadSavedTenantBills({ quiet: true });
+    if (session) loadSavedSettlementRecords({ quiet: true });
   });
 }
 document.querySelector("#addRemittanceBtn").addEventListener("click", () => {
@@ -2084,6 +2177,7 @@ document.querySelector("#resetSettlementBtn").addEventListener("click", () => {
   renderSettlement();
 });
 els.settlementSource.addEventListener("change", applySettlementPropertyDefaults);
+els.savedSettlementSelect.addEventListener("change", loadSelectedSettlement);
 document.querySelectorAll("#settlementView input, #settlementView select").forEach((input) => {
   input.addEventListener("input", renderSettlement);
   input.addEventListener("change", renderSettlement);
