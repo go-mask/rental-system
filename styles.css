@@ -870,6 +870,45 @@ textarea {
   color: var(--danger);
 }
 
+.formula-card {
+  border-color: #d4e3e6;
+  background: #f7fbfc;
+}
+
+.formula-card.blue {
+  background: #eef7fb;
+  border-color: #bfdae5;
+}
+
+.formula-card.green {
+  background: #f0f8ee;
+  border-color: #cfe3c8;
+}
+
+.formula-card.cyan {
+  background: #effafa;
+  border-color: #c9e4e4;
+}
+
+.formula-card.amber {
+  background: #fff8ea;
+  border-color: #ead8aa;
+}
+
+.formula-card.red,
+.formula-card.negative {
+  background: #fff1f1;
+  border-color: #efc6c6;
+}
+
+.formula-card em {
+  color: var(--ink);
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
 .split-result {
   display: grid;
   gap: 10px;
@@ -1576,6 +1615,30 @@ textarea {
     gap: 3mm;
   }
 
+  body[data-print-view="settlement"] .panel,
+  body[data-print-view="settlement"] .settlement-print-header,
+  body[data-print-view="settlement"] .summary-card,
+  body[data-print-view="settlement"] .split-row,
+  body[data-print-view="settlement"] .settlement-table th {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  body[data-print-view="settlement"] .settlement-layout > .panel:nth-of-type(1) {
+    background: #f7fbff;
+    padding: 2mm;
+  }
+
+  body[data-print-view="settlement"] .settlement-layout > .panel:nth-of-type(2) {
+    background: #f6fbf7;
+    padding: 2mm;
+  }
+
+  body[data-print-view="settlement"] .settlement-layout > .result-panel {
+    background: #fffaf0;
+    padding: 2mm;
+  }
+
   body[data-print-view="settlement"] .form-grid,
   body[data-print-view="settlement"] .utility-grid {
     grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -1627,6 +1690,10 @@ textarea {
     line-height: 1.25;
   }
 
+  body[data-print-view="settlement"] .settlement-table th {
+    background: #edf4f7;
+  }
+
   body[data-print-view="settlement"] .settlement-table input,
   body[data-print-view="settlement"] .settlement-table select {
     font-size: 9px;
@@ -1635,7 +1702,7 @@ textarea {
   }
 
   body[data-print-view="settlement"] .settlement-summary {
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 2mm;
     margin-top: 2mm;
   }
@@ -1650,7 +1717,7 @@ textarea {
   body[data-print-view="settlement"] .summary-card {
     gap: 1mm;
     padding: 2mm;
-    border-radius: 0;
+    border-radius: 4px;
   }
 
   body[data-print-view="settlement"] .summary-card span {
@@ -1659,7 +1726,13 @@ textarea {
   }
 
   body[data-print-view="settlement"] .summary-card strong {
-    font-size: 13px;
+    font-size: 12.5px;
+  }
+
+  body[data-print-view="settlement"] .summary-card em {
+    color: #111;
+    font-size: 8.5px;
+    line-height: 1.2;
   }
 
   body[data-print-view="settlement"] .summary-card small {

@@ -1177,15 +1177,7 @@ function settlementCalculation() {
 function renderSettlement() {
   const result = settlementCalculation();
 
-  els.settlementSummary.innerHTML = [
-    summaryCard("月租日割", `${money(Math.round(result.dailyRent))} / 日`, `${result.usedDays} / ${result.monthDays} 天`),
-    summaryCard("退租日前租金", money(result.rentUntilMoveOut), "以退租日含當日計算"),
-    summaryCard("預繳租金應退", money(result.prepaidRefund), "已收租金扣除實住天數"),
-    summaryCard("水電分攤", result.utility.billReceived ? money(result.utilityForMoveOutTenant) : "待結算", result.utility.billReceived ? "取第一列退租租客金額" : "官方兩月帳單未到，暫不進押金結算"),
-    summaryCard("押金", money(result.deposit), "可抵扣未繳與費用"),
-    summaryCard("扣款合計", money(result.deductions), "未繳租金、修繕、其他、水電"),
-    summaryCard(result.finalRefund >= 0 ? "應退租客" : "租客需補繳", money(Math.abs(result.finalRefund)), result.finalRefund >= 0 ? "押金與退租金扣除費用後" : "費用超過押金與退租金", `final ${result.finalRefund < 0 ? "negative" : ""}`)
-  ].join("");
+  els.settlementSummary.innerHTML = renderSettlementFormulaCards(result);
 
   els.tenantSplitResult.innerHTML = result.utility.rows.length
     ? result.utility.rows.map((row) => `
@@ -1203,11 +1195,32 @@ function renderSettlement() {
   els.settlementPrintMeta.textContent = `${els.settlementAddress.value || "未填地址"}｜${els.settlementTenant.value || "未填租客"}｜退租日 ${els.moveOutDate.value || "未填"}｜列印日期 ${new Date().toLocaleDateString("zh-TW")}`;
 }
 
-function summaryCard(label, value, hint, className = "") {
+function renderSettlementFormulaCards(result) {
+  const finalLabel = result.finalRefund >= 0 ? "應退租客" : "租客需補繳";
+  const moveOutUtility = result.utility.rows[0] || {};
+  const utilityFormula = result.utility.billReceived
+    ? `${money(moveOutUtility.electric || 0)} + ${money(moveOutUtility.water || 0)} + ${money(moveOutUtility.shared || 0)}`
+    : "待官方帳單後結算";
+  const utilityHint = result.utility.billReceived
+    ? "取水電分攤第一列退租租客金額"
+    : "官方兩月帳單未到，暫不進押金結算";
+  return [
+    formulaCard("月租日割", money(Math.round(result.dailyRent)), `${money(result.monthlyRent)} / ${result.monthDays} 天`, `${result.usedDays} / ${result.monthDays} 天`, "blue"),
+    formulaCard("退租日前租金", money(result.rentUntilMoveOut), `${money(result.monthlyRent)} x ${result.usedDays} 天 / ${result.monthDays} 天`, "退租日含當日計算", "blue"),
+    formulaCard("預繳租金應退", money(result.prepaidRefund), `${money(result.prepaidRent)} - ${money(result.rentUntilMoveOut)}`, "已收租金扣除實住天數", "green"),
+    formulaCard("水電分攤", result.utility.billReceived ? money(result.utilityForMoveOutTenant) : "待結算", utilityFormula, utilityHint, "cyan"),
+    formulaCard("押金", money(result.deposit), `${money(result.deposit)}`, "可抵扣未繳與費用", "amber"),
+    formulaCard("扣款合計", money(result.deductions), `${money(result.unpaidRent)} + ${money(result.damageFee)} + ${money(result.otherFee)} + ${result.utility.billReceived ? money(result.utilityForMoveOutTenant) : "待結算水電"}`, "未繳租金 + 修繕 + 其他 + 水電", "red"),
+    formulaCard(finalLabel, money(Math.abs(result.finalRefund)), `${money(result.deposit)} + ${money(result.prepaidRefund)} - ${money(result.deductions)}`, result.finalRefund >= 0 ? "押金加退租金，扣除費用後" : "費用超過押金與退租金", `final ${result.finalRefund < 0 ? "negative" : "green"}`)
+  ].join("");
+}
+
+function formulaCard(label, value, formula, hint, className = "") {
   return `
-    <article class="summary-card ${className}">
+    <article class="summary-card formula-card ${className}">
       <span>${escapeHtml(label)}</span>
       <strong>${escapeHtml(value)}</strong>
+      <em>${escapeHtml(formula)}</em>
       <small class="meta-text">${escapeHtml(hint)}</small>
     </article>
   `;
