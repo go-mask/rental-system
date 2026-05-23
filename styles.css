@@ -391,6 +391,7 @@ textarea {
   gap: 10px;
   align-items: center;
   justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .print-only {
@@ -739,6 +740,35 @@ textarea {
   display: grid;
   grid-template-columns: repeat(3, minmax(240px, 1fr));
   gap: 14px;
+}
+
+.property-list-container {
+  min-width: 0;
+}
+
+.property-list-wrap {
+  margin-top: 0;
+}
+
+.property-list-table {
+  min-width: 1120px;
+  table-layout: auto;
+}
+
+.property-list-table th:nth-child(n),
+.property-list-table td {
+  width: auto;
+  min-width: 96px;
+  white-space: normal;
+}
+
+.property-list-table .property-address-cell {
+  min-width: 260px;
+}
+
+.property-list-table .property-notes-cell {
+  min-width: 180px;
+  color: var(--muted);
 }
 
 .property-card {

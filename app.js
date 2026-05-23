@@ -2,6 +2,7 @@
 const STORAGE_KEY = "rent-management-data-v1";
 const SIDEBAR_STORAGE_KEY = "rent-management-sidebar-collapsed";
 const REMITTANCE_STORAGE_KEY = "rent-management-remittance-profiles";
+const PROPERTY_VIEW_MODE_KEY = "rent-management-property-view-mode";
 
 const initialData = window.RENTAL_INITIAL_DATA || createEmptyInitialData();
 
@@ -15,6 +16,7 @@ let currentYear = Object.keys(state).sort().at(-1);
 let currentMonth = `${new Date().getMonth() + 1}月`;
 let activeStatus = "all";
 let activeView = "dashboard";
+let propertyViewMode = localStorage.getItem(PROPERTY_VIEW_MODE_KEY) === "list" ? "list" : "cards";
 
 const els = {
   yearSelect: document.querySelector("#yearSelect"),
@@ -754,7 +756,20 @@ function printCurrentView(view) {
 }
 
 function renderProperties() {
-  els.propertyCards.innerHTML = getRows()
+  renderPropertyModeControls();
+  els.propertyCards.classList.toggle("property-grid", propertyViewMode === "cards");
+  els.propertyCards.classList.toggle("property-list-container", propertyViewMode === "list");
+  els.propertyCards.innerHTML = propertyViewMode === "list" ? renderPropertyList() : renderPropertyCards();
+}
+
+function renderPropertyModeControls() {
+  document.querySelectorAll("[data-property-view-mode]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.propertyViewMode === propertyViewMode);
+  });
+}
+
+function renderPropertyCards() {
+  return getRows()
     .map((row, index) => `
       <article class="property-card">
         <header>
@@ -776,6 +791,50 @@ function renderProperties() {
       </article>
     `)
     .join("");
+}
+
+function renderPropertyList() {
+  const rows = getRows();
+  if (!rows.length) return `<p class="meta-text">目前沒有物件資料。</p>`;
+  return `
+    <div class="table-wrap property-list-wrap">
+      <table class="data-table property-list-table">
+        <thead>
+          <tr>
+            <th>地址</th>
+            <th>租客</th>
+            <th>月租</th>
+            <th>週期</th>
+            <th>帳號後五碼</th>
+            <th>電錶</th>
+            <th>水錶</th>
+            <th>備註</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map((row, index) => `
+            <tr>
+              <td class="property-address-cell">${escapeHtml(row.address)}</td>
+              <td>${escapeHtml(row.tenant || "未填")}</td>
+              <td>${money(row.rent)}</td>
+              <td>${escapeHtml(row.cycle || "未設定")}</td>
+              <td>${escapeHtml(row.bankAccount || "未填")}</td>
+              <td>${escapeHtml(meterText(row.electricPrevious, row.electricCurrent))}</td>
+              <td>${escapeHtml(meterText(row.waterPrevious, row.waterCurrent))}</td>
+              <td class="property-notes-cell">${escapeHtml(row.notes || "")}</td>
+              <td>
+                <div class="property-actions">
+                  <button class="quiet-button" type="button" data-property-edit="${index}">編輯</button>
+                  <button class="danger-button" type="button" data-property-delete="${index}">刪除</button>
+                </div>
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
 }
 
 function meterText(previous, current) {
@@ -1807,6 +1866,13 @@ els.confirmPassword.addEventListener("keydown", (event) => {
 });
 document.querySelector("#inviteMemberBtn").addEventListener("click", inviteOrganizationMember);
 document.querySelector("#addPropertyBtn").addEventListener("click", () => openPropertyDialog(null));
+document.querySelectorAll("[data-property-view-mode]").forEach((button) => {
+  button.addEventListener("click", () => {
+    propertyViewMode = button.dataset.propertyViewMode === "list" ? "list" : "cards";
+    localStorage.setItem(PROPERTY_VIEW_MODE_KEY, propertyViewMode);
+    renderProperties();
+  });
+});
 document.querySelector("#addUtilityTenantBtn").addEventListener("click", () => {
   utilityTenants.push({ name: "", start: "", end: "", charge: "tenant", electricPrevious: 0, electricCurrent: 0, waterPrevious: 0, waterCurrent: 0 });
   renderTenantSplitRows();

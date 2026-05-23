@@ -174,7 +174,13 @@
                 <h3>物件資料</h3>
                 <p>管理租金、租客、繳費週期與備註</p>
               </div>
-              <button id="addPropertyBtn" class="primary-button" type="button">新增物件</button>
+              <div class="panel-actions">
+                <div class="segmented" aria-label="物件顯示模式">
+                  <button class="segment" type="button" data-property-view-mode="cards">卡片</button>
+                  <button class="segment" type="button" data-property-view-mode="list">列表</button>
+                </div>
+                <button id="addPropertyBtn" class="primary-button" type="button">新增物件</button>
+              </div>
             </div>
             <div id="propertyCards" class="property-grid"></div>
           </section>
