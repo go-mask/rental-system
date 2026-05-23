@@ -905,6 +905,10 @@ textarea {
   border-color: #c8d1ee;
 }
 
+.formula-card.final strong {
+  color: #7a3f12;
+}
+
 .formula-card.red,
 .formula-card.negative {
   background: #fff1f1;
@@ -1712,9 +1716,17 @@ textarea {
   }
 
   body[data-print-view="settlement"] .settlement-summary {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: 2mm;
     margin-top: 5mm;
+  }
+
+  body[data-print-view="settlement"] .settlement-summary .summary-card:nth-child(-n + 3) {
+    grid-column: span 4;
+  }
+
+  body[data-print-view="settlement"] .settlement-summary .summary-card:nth-child(n + 4) {
+    grid-column: span 3;
   }
 
   body[data-print-view="settlement"] .summary-card,

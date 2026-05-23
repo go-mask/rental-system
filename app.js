@@ -1208,10 +1208,10 @@ function renderSettlementFormulaCards(result) {
     formulaCard("月租日割", money(Math.round(result.dailyRent)), `${money(result.monthlyRent)} / ${result.monthDays} 天`, `${result.usedDays} / ${result.monthDays} 天`, "blue"),
     formulaCard("退租日前租金", money(result.rentUntilMoveOut), `${money(result.monthlyRent)} x ${result.usedDays} 天 / ${result.monthDays} 天`, "退租日含當日計算", "blue"),
     formulaCard("水電分攤", result.utility.billReceived ? money(result.utilityForMoveOutTenant) : "待結算", utilityFormula, utilityHint, "cyan"),
-    formulaCard("押金", money(result.deposit), `${money(result.deposit)}`, "可抵扣未繳與費用", "violet"),
+    formulaCard("押金", money(result.deposit), `${money(result.deposit)}`, "可抵扣未繳與費用", "indigo"),
     formulaCard("預繳租金應退", money(result.prepaidRefund), `${money(result.prepaidRent)} - ${money(result.rentUntilMoveOut)}`, "已收租金扣除實住天數", "green"),
     formulaCard("扣款合計", money(result.deductions), `${money(result.unpaidRent)} + ${money(result.damageFee)} + ${money(result.otherFee)} + ${result.utility.billReceived ? money(result.utilityForMoveOutTenant) : "待結算水電"}`, "未繳租金 + 修繕 + 其他 + 水電", "red"),
-    formulaCard(finalLabel, money(Math.abs(result.finalRefund)), `${money(result.deposit)} + ${money(result.prepaidRefund)} - ${money(result.deductions)}`, result.finalRefund >= 0 ? "押金加退租金，扣除費用後" : "費用超過押金與退租金", `final ${result.finalRefund < 0 ? "negative" : "indigo"}`)
+    formulaCard(finalLabel, money(Math.abs(result.finalRefund)), `${money(result.deposit)} + ${money(result.prepaidRefund)} - ${money(result.deductions)}`, result.finalRefund >= 0 ? "押金加退租金，扣除費用後" : "費用超過押金與退租金", `final ${result.finalRefund < 0 ? "negative" : "violet"}`)
   ].join("");
 }
 
