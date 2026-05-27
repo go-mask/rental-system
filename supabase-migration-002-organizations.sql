@@ -223,6 +223,13 @@ begin
 end;
 $$;
 
+grant execute on function public.is_org_member(uuid) to authenticated;
+grant execute on function public.org_role(uuid) to authenticated;
+grant execute on function public.can_edit_org(uuid) to authenticated;
+grant execute on function public.can_manage_org(uuid) to authenticated;
+grant execute on function public.ensure_default_organization() to authenticated;
+grant execute on function public.accept_pending_invitations() to authenticated;
+
 drop policy if exists "organizations readable by members" on public.organizations;
 create policy "organizations readable by members" on public.organizations
   for select to authenticated

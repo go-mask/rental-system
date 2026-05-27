@@ -35,10 +35,12 @@
 ```text
 supabase-migration-001-rent-year.sql
 supabase-migration-002-organizations.sql
+supabase-migration-003-api-privileges.sql
 ```
 
 這會讓 `properties` 增加 `rent_year` 欄位，讓同一物件在不同年度可保留不同租客、租金與備註。
 第二份 migration 會建立多人協作的 organization、member、invitation 權限模型，並把既有資料歸入你的預設組織。
+第三份 migration 會配合 Supabase Data API 權限變更，明確授權本系統資料表與 RPC 函式給登入使用者使用。
 
 ## 建議 Authentication 設定
 
@@ -109,3 +111,4 @@ supabase-migration-002-organizations.sql
 - GitHub 不可以放 service_role key。
 - 真實租客資料不要再硬寫進 `app.js`。
 - RLS policy 沒確認前，不要把正式資料匯入。
+- 未來新增 Supabase 資料表時，migration 要同時包含 `grant`、`enable row level security` 與 policy。
