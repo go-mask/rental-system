@@ -304,7 +304,10 @@
                         <option value="shared">租金不含水電 / 房東代繳分錶分攤</option>
                       </select>
                     </label>
-                    <label>地址<select id="billAddress"></select></label>
+                    <label>地址
+                      <input id="billAddress" list="billAddressOptions" placeholder="選擇物件地址或直接輸入" />
+                      <datalist id="billAddressOptions"></datalist>
+                    </label>
                     <label>帳期年份<select id="billYear"></select></label>
                     <label>帳期月份<select id="billMonth"></select></label>
                     <label>繳款期限<input id="billDueDate" type="date" /></label>

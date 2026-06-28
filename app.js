@@ -77,6 +77,7 @@ const els = {
   billType: document.querySelector("#billType"),
   savedBillSelect: document.querySelector("#savedBillSelect"),
   billAddress: document.querySelector("#billAddress"),
+  billAddressOptions: document.querySelector("#billAddressOptions"),
   billYear: document.querySelector("#billYear"),
   billMonth: document.querySelector("#billMonth"),
   billDueDate: document.querySelector("#billDueDate"),
@@ -288,11 +289,13 @@ function renderBillControls() {
   const currentAddress = els.billAddress.value;
   const rows = getRows();
   const addressOptions = rows
-    .map((row, index) => `<option value="${index}">${escapeHtml(row.address)}${row.tenant ? ` · ${escapeHtml(row.tenant)}` : ""}</option>`)
+    .map((row) => `<option value="${escapeAttr(row.address || "")}" label="${escapeAttr(propertyOptionLabel(row))}"></option>`)
     .join("");
-  els.billAddress.innerHTML = addressOptions || `<option value="">沒有物件資料</option>`;
-  if (currentAddress && [...els.billAddress.options].some((option) => option.value === currentAddress)) {
+  els.billAddressOptions.innerHTML = addressOptions;
+  if (currentAddress) {
     els.billAddress.value = currentAddress;
+  } else if (rows.length) {
+    els.billAddress.value = rows[0].address || "";
   }
 
   const currentBillYear = els.billYear.value || currentYear;
@@ -546,7 +549,7 @@ function tenantBillPayload() {
   return {
     organization_id: currentOrganization?.id,
     bill_type: els.billType.value,
-    address: billAddressOverride || selectedBillProperty()?.address || "",
+    address: currentBillAddress(),
     bill_year: Number(els.billYear.value || currentYear),
     bill_month: Number(els.billMonth.value || 1),
     due_date: els.billDueDate.value || null,
@@ -662,6 +665,7 @@ function loadSelectedTenantBill() {
   els.billElectricTotal.value = Number(bill.officialElectricTotal || 0);
   els.billWaterTotal.value = Number(bill.officialWaterTotal || 0);
   billAddressOverride = bill.address || "";
+  els.billAddress.value = bill.address || "";
   billPeriodOverride = `${bill.bill_year}年${bill.bill_month}月`;
   billTenants = (bill.tenant_bill_items || []).map((item) => ({
     unit: item.unit_label || "",
@@ -962,8 +966,13 @@ function renderBillTenantRows() {
 }
 
 function selectedBillProperty() {
-  const index = Number(els.billAddress.value);
-  return getRows()[index] || null;
+  const address = els.billAddress.value.trim();
+  if (!address) return null;
+  return getRows().find((row) => row.address === address || propertyOptionLabel(row) === address) || null;
+}
+
+function currentBillAddress() {
+  return billAddressOverride || els.billAddress.value.trim() || selectedBillProperty()?.address || "";
 }
 
 function applyBillPropertyDefaults(overwriteTenants = true) {
@@ -1043,7 +1052,7 @@ function renderTenantBill() {
   });
   els.billSummaryBand.classList.toggle("is-hidden", isShared);
   els.billReportTitle.textContent = "租客帳單報表";
-  els.billReportAddress.textContent = billAddressOverride || selectedBillProperty()?.address || "未填地址";
+  els.billReportAddress.textContent = currentBillAddress() || "未填地址";
   els.billReportPeriod.textContent = billPeriodText();
   els.billElectricLabel.textContent = isShared ? "官方電費總額" : "水電費";
   els.billWaterLabel.textContent = isShared ? "官方水費總額" : "收費方式";
@@ -2211,11 +2220,19 @@ document.querySelectorAll("#tenantBillView input, #tenantBillView select").forEa
 
 els.savedBillSelect.addEventListener("change", loadSelectedTenantBill);
 
-els.billAddress.addEventListener("change", () => {
+function handleBillAddressInput({ overwriteTenants = false } = {}) {
   billAddressOverride = "";
-  applyBillPropertyDefaults(true);
+  applyBillPropertyDefaults(overwriteTenants);
   updateBillDueDate();
   renderTenantBill();
+}
+
+els.billAddress.addEventListener("input", () => {
+  handleBillAddressInput({ overwriteTenants: false });
+});
+
+els.billAddress.addEventListener("change", () => {
+  handleBillAddressInput({ overwriteTenants: true });
 });
 
 [els.billYear, els.billMonth].forEach((select) => {
