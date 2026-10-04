@@ -1,6 +1,7 @@
 ﻿const MONTHS = Array.from({ length: 12 }, (_, index) => `${index + 1}月`);
 const STORAGE_KEY = "rent-management-data-v1";
 const SIDEBAR_STORAGE_KEY = "rent-management-sidebar-collapsed";
+const SIDEBAR_WIDTH_STORAGE_KEY = "rent-management-sidebar-width";
 const REMITTANCE_STORAGE_KEY = "rent-management-remittance-profiles";
 const PROPERTY_VIEW_MODE_KEY = "rent-management-property-view-mode";
 
@@ -50,6 +51,8 @@ const els = {
   teamMessage: document.querySelector("#teamMessage"),
   appShell: document.querySelector("#appShell"),
   sidebarToggle: document.querySelector("#sidebarToggle"),
+  sidebarResize: document.querySelector("#sidebarResize"),
+  sidebarWidthLabel: document.querySelector("#sidebarWidthLabel"),
   settlementSource: document.querySelector("#settlementSource"),
   settlementAddress: document.querySelector("#settlementAddress"),
   settlementTenant: document.querySelector("#settlementTenant"),
@@ -2065,6 +2068,56 @@ function applySidebarState(collapsed) {
 }
 
 applySidebarState(localStorage.getItem(SIDEBAR_STORAGE_KEY) === "true");
+
+let sidebarWidth = Number(localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY)) || 280;
+let sidebarDrag = null;
+
+function applySidebarWidth(width) {
+  const maximum = Math.min(480, Math.max(240, window.innerWidth - 640));
+  const effectiveWidth = Math.round(Math.min(maximum, Math.max(240, width)));
+  els.appShell.style.setProperty("--sidebar-width", `${effectiveWidth}px`);
+  els.sidebarResize.setAttribute("aria-valuemax", String(maximum));
+  els.sidebarResize.setAttribute("aria-valuenow", String(effectiveWidth));
+  els.sidebarResize.setAttribute("aria-valuetext", `${effectiveWidth} 像素`);
+  els.sidebarWidthLabel.textContent = `${effectiveWidth} px`;
+  return effectiveWidth;
+}
+
+applySidebarWidth(sidebarWidth);
+window.addEventListener("resize", () => applySidebarWidth(sidebarWidth));
+
+els.sidebarResize.addEventListener("pointerdown", (event) => {
+  if (event.button !== 0 || window.innerWidth <= 1100 || els.appShell.classList.contains("sidebar-collapsed")) return;
+  event.preventDefault();
+  sidebarDrag = { pointerId: event.pointerId, startX: event.clientX, startWidth: Number(els.sidebarResize.getAttribute("aria-valuenow")) };
+  els.sidebarResize.setPointerCapture(event.pointerId);
+  els.appShell.classList.add("sidebar-resizing");
+});
+
+els.sidebarResize.addEventListener("pointermove", (event) => {
+  if (!sidebarDrag || sidebarDrag.pointerId !== event.pointerId) return;
+  sidebarWidth = applySidebarWidth(sidebarDrag.startWidth + event.clientX - sidebarDrag.startX);
+});
+
+function finishSidebarResize(event) {
+  if (!sidebarDrag || sidebarDrag.pointerId !== event.pointerId) return;
+  sidebarDrag = null;
+  els.appShell.classList.remove("sidebar-resizing");
+  localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(sidebarWidth));
+}
+
+els.sidebarResize.addEventListener("pointerup", finishSidebarResize);
+els.sidebarResize.addEventListener("pointercancel", finishSidebarResize);
+els.sidebarResize.addEventListener("lostpointercapture", finishSidebarResize);
+els.sidebarResize.addEventListener("keydown", (event) => {
+  if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+  event.preventDefault();
+  const step = event.shiftKey ? 50 : 10;
+  const currentWidth = Number(els.sidebarResize.getAttribute("aria-valuenow"));
+  const nextWidth = event.key === "Home" ? 240 : event.key === "End" ? 480 : currentWidth + (event.key === "ArrowLeft" ? -step : step);
+  sidebarWidth = applySidebarWidth(nextWidth);
+  localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(sidebarWidth));
+});
 
 els.sidebarToggle.addEventListener("click", () => {
   const collapsed = !els.appShell.classList.contains("sidebar-collapsed");
