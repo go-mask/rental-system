@@ -108,13 +108,24 @@ button {
 }
 
 .sidebar {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  height: 100dvh;
   background: var(--nav);
   color: #edf4f7;
   padding: 28px 20px;
   display: flex;
   flex-direction: column;
   gap: 28px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+.sidebar > * {
+  flex-shrink: 0;
 }
 
 .brand-row {
@@ -1397,7 +1408,10 @@ textarea {
   }
 
   .sidebar {
-    position: static;
+    z-index: 10;
+    height: auto;
+    max-height: 45vh;
+    max-height: 45dvh;
     padding: 18px;
   }
 
