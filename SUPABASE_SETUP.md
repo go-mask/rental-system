@@ -106,12 +106,12 @@ supabase-migration-003-api-privileges.sql
 
 ## 定時資料庫連線檢查
 
-GitHub Actions 的 `Supabase database health check` 每天台灣時間 01:17、09:17、17:17 執行（實際可能延遲）。電腦不必開機。排程使用前端既有的公開 API key，對 `properties` 執行零筆資料查詢，不下載租客資料、不新增或修改紀錄，也不需要管理員金鑰。
+GitHub Actions 的 `Supabase database health check` 每天台灣時間 01:17、09:17、17:17 執行（實際可能延遲）。電腦不必開機。排程使用前端既有的公開 API key，呼叫既有唯讀函式 `is_org_member`，以全零 UUID 檢查未登入者的組織成員身分，預期只回傳 `false`。不下載租客資料、不新增或修改紀錄，也不需要管理員金鑰。
 
 1. 已暫停的專案必須先到 Supabase Dashboard 按 Restore / Resume 恢復。
 2. 將排程與腳本推送到 GitHub 的預設分支 `main`。
 3. 到 GitHub → Actions → Supabase database health check，確認有綠色成功紀錄；也能按 Run workflow 手動測試。
-4. 若出現 401 / 403，確認公開 API key 與資料表權限，不要為了此檢查放寬租客資料的 RLS 或加入管理員金鑰。此方案依賴既有資料表允許 anon 進行受 RLS 限制的查詢；若已撤銷此權限，需另設不含業務資料的檢查端點。
+4. 若出現 401 / 403，確認公開 API key 與函式權限，不要為了此檢查放寬租客資料的 RLS 或加入管理員金鑰。此方案依賴既有 `is_org_member` 可由未登入者呼叫；若未來撤銷此權限，需另設不含業務資料的檢查端點。
 
 這是免費方案的盡力維持連線措施，不保證 Supabase 一定不暫停，也不能自動恢復已暫停的專案。成功只表示資料庫 API 可達，不代表已驗證登入及全部業務功能。
 

@@ -8,15 +8,15 @@ vm.runInNewContext(
   { timeout: 1000 },
 );
 const { url, anonKey } = context.window.RENTAL_SUPABASE_CONFIG;
-const endpoint = new URL('/rest/v1/properties', url);
+const endpoint = new URL('/rest/v1/rpc/is_org_member', url);
 const headers = { apikey: anonKey, Accept: 'application/json' };
 if (anonKey?.startsWith('eyJ')) headers.Authorization = `Bearer ${anonKey}`;
 if (endpoint.protocol !== 'https:' || !anonKey) {
   throw new Error('Supabase HTTPS URL and public API key are required.');
 }
-// Exercise the database API without retrieving any tenant records.
-endpoint.searchParams.set('select', 'id');
-endpoint.searchParams.set('limit', '0');
+// This stable, read-only function checks auth.uid(); an unauthenticated
+// request with the nil organization UUID must return false, never records.
+endpoint.searchParams.set('target_org', '00000000-0000-0000-0000-000000000000');
 
 let healthy = false;
 for (let attempt = 1; attempt <= 3; attempt += 1) {
@@ -33,8 +33,8 @@ for (let attempt = 1; attempt <= 3; attempt += 1) {
       throw new Error(`HTTP ${response.status}${code}; check project status and API permissions`);
     }
     const result = await response.json();
-    if (!Array.isArray(result) || result.length !== 0) {
-      throw new Error('Unexpected response from zero-row database query');
+    if (result !== false) {
+      throw new Error('Unexpected response from unauthenticated membership check');
     }
     console.log('Supabase database API is reachable. No records retrieved or changed.');
     healthy = true;
